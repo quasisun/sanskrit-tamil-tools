@@ -1,0 +1,1392 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sanskrit & Tamil Tools</title>
+<style>
+  :root {
+    --bg: #f5ede0;
+    --surface: #ede0cc;
+    --card: #e0ccb0;
+    --accent: #a0401a;
+    --accent2: #7a2e0e;
+    --text: #3b1f0e;
+    --muted: #8a6a50;
+    --border: #c9aa88;
+    --green: #4a7c3f;
+    --radius: 10px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', Arial, sans-serif; min-height: 100vh; }
+
+  header {
+    background: var(--surface);
+    border-bottom: 2px solid var(--accent);
+    padding: 16px 24px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+  header h1 { font-size: 1.3rem; color: var(--accent2); letter-spacing: 1px; }
+  header span { color: var(--muted); font-size: 0.85rem; }
+
+  .api-bar {
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .api-bar input {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 6px 10px;
+    border-radius: 6px;
+    font-size: 0.78rem;
+    width: 260px;
+  }
+  .api-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--muted); }
+  .api-dot.ok { background: var(--green); }
+
+  nav {
+    display: flex;
+    gap: 4px;
+    padding: 12px 24px;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    flex-wrap: wrap;
+  }
+  nav button {
+    background: none;
+    border: 1px solid var(--border);
+    color: var(--muted);
+    padding: 7px 18px;
+    border-radius: 20px;
+    cursor: pointer;
+    font-size: 0.85rem;
+    transition: all .2s;
+  }
+  nav button.active, nav button:hover {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #fff;
+  }
+
+  .tab { display: none; padding: 24px; max-width: 1100px; margin: 0 auto; }
+  .tab.active { display: block; }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 20px;
+    margin-bottom: 16px;
+  }
+  .card h2 { font-size: 1rem; color: var(--accent2); margin-bottom: 14px; }
+
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  @media(max-width:700px){ .two-col { grid-template-columns: 1fr; } }
+
+  textarea {
+    width: 100%;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    color: var(--text);
+    border-radius: 8px;
+    padding: 12px;
+    font-size: 1rem;
+    resize: vertical;
+    min-height: 130px;
+    font-family: 'Noto Sans Devanagari', 'Noto Sans Tamil', Arial, sans-serif;
+    line-height: 1.7;
+  }
+  textarea:focus { outline: none; border-color: var(--accent); }
+
+  .btn-row { display: flex; gap: 8px; flex-wrap: wrap; margin: 10px 0; }
+  button.btn {
+    background: var(--accent);
+    border: none;
+    color: #fff;
+    padding: 8px 18px;
+    border-radius: 7px;
+    cursor: pointer;
+    font-size: 0.88rem;
+    transition: opacity .2s;
+  }
+  button.btn:hover { opacity: 0.85; }
+  button.btn.secondary {
+    background: var(--card);
+    border: 1px solid var(--border);
+    color: var(--text);
+  }
+  button.btn.small { padding: 5px 12px; font-size: 0.78rem; }
+  button.btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  select {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 7px 10px;
+    border-radius: 7px;
+    font-size: 0.88rem;
+  }
+
+  .result-box {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px;
+    min-height: 60px;
+    font-size: 1rem;
+    line-height: 1.7;
+    white-space: pre-wrap;
+    font-family: 'Noto Sans Devanagari', 'Noto Sans Tamil', Arial, sans-serif;
+  }
+  .result-box.iast { font-family: 'Times New Roman', serif; font-size: 1.05rem; }
+
+  label.small { font-size: 0.8rem; color: var(--muted); display: block; margin-bottom: 5px; }
+
+  .spinner {
+    display: inline-block;
+    width: 14px; height: 14px;
+    border: 2px solid var(--muted);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin .7s linear infinite;
+    vertical-align: middle;
+    margin-left: 6px;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* Keyboard */
+  .kbd-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    margin-top: 8px;
+  }
+  .kbd-key {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 5px;
+    padding: 5px 9px;
+    cursor: pointer;
+    font-size: 1.1rem;
+    font-family: 'Noto Sans Devanagari', 'Noto Sans Tamil', serif;
+    color: var(--text);
+    transition: background .15s;
+  }
+  .kbd-key:hover { background: var(--accent); }
+
+  /* Dictionary */
+  .dict-result { margin-top: 10px; }
+  .dict-entry {
+    background: var(--bg);
+    border-left: 3px solid var(--accent2);
+    padding: 10px 14px;
+    margin-bottom: 10px;
+    border-radius: 0 8px 8px 0;
+  }
+  .dict-entry .headword { font-size: 1.2rem; color: var(--accent2); font-family: 'Times New Roman', serif; }
+  .dict-entry .grammar { color: var(--muted); font-size: 0.82rem; margin: 2px 0; }
+  .dict-entry .meaning { font-size: 0.92rem; line-height: 1.6; }
+
+  /* OCR */
+  .drop-zone {
+    border: 2px dashed var(--border);
+    border-radius: var(--radius);
+    padding: 40px;
+    text-align: center;
+    color: var(--muted);
+    cursor: pointer;
+    transition: border-color .2s;
+  }
+  .drop-zone:hover, .drop-zone.over { border-color: var(--accent); color: var(--text); }
+  .drop-zone input[type=file] { display: none; }
+
+  /* History */
+  .hist-item {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 14px;
+    margin-bottom: 8px;
+    font-size: 0.85rem;
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+  }
+  .hist-item .hi-text { flex: 1; }
+  .hist-item .hi-time { color: var(--muted); font-size: 0.75rem; white-space: nowrap; }
+
+  .tag {
+    display: inline-block;
+    background: var(--card);
+    border-radius: 4px;
+    padding: 1px 7px;
+    font-size: 0.75rem;
+    color: var(--accent2);
+    margin-bottom: 4px;
+  }
+
+  .parallel-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
+  @media(max-width:800px){ .parallel-grid { grid-template-columns: 1fr; } }
+
+  .info { color: var(--muted); font-size: 0.82rem; margin-top: 6px; }
+
+  .grammar-table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 0.85rem; }
+  .grammar-table th { background: var(--card); color: var(--accent2); padding: 6px 10px; text-align: left; }
+  .grammar-table td { padding: 5px 10px; border-top: 1px solid var(--border); }
+  .grammar-table tr:hover td { background: var(--card); }
+</style>
+<!-- Tesseract.js for OCR (локальные файлы) -->
+<script src="sanskrit-tools-assets/tesseract.min.js"></script>
+</head>
+<body>
+
+<header>
+  <h1>🕉 Sanskrit &amp; Tamil Tools</h1>
+  <span>Транслитерация · Перевод · Словарь · OCR</span>
+  <div class="api-bar">
+    <span id="apiDot" class="api-dot"></span>
+    <label class="small" style="margin:0;color:var(--muted)">Google Translate Proxy:</label>
+    <input type="url" id="proxyUrlInput" placeholder="адрес Google-прокси для GitHub">
+    <button class="btn small" id="saveApiKeyBtn" type="button">Сохранить</button>
+    <span id="apiSaveStatus" class="small" style="color:var(--muted)"></span>
+  </div>
+</header>
+
+<nav>
+  <button class="active" onclick="showTab('translit')">Транслитерация</button>
+  <button onclick="showTab('translate')">Перевод</button>
+  <button onclick="showTab('parallel')">Параллельный режим</button>
+  <button onclick="showTab('dictionary')">Словарь MW</button>
+  <button onclick="showTab('grammar')">Грамматика</button>
+  <button onclick="showTab('ocr')">OCR</button>
+  <button onclick="showTab('files')">Файлы</button>
+  <button onclick="showTab('history')">История</button>
+</nav>
+
+<!-- ====== TRANSLITERATION ====== -->
+<div id="tab-translit" class="tab active">
+  <div class="card">
+    <h2>Транслитерация</h2>
+    <div class="btn-row">
+      <select id="scriptMode">
+        <option value="dev2iast">Деванагари → IAST</option>
+        <option value="iast2dev">IAST → Деванагари</option>
+        <option value="tam2latin">Тамильский → Латиница</option>
+        <option value="latin2tam">Латиница → Тамильский</option>
+        <option value="dev2hk">Деванагари → Harvard-Kyoto</option>
+        <option value="hk2dev">Harvard-Kyoto → Деванагари</option>
+      </select>
+      <button class="btn secondary" onclick="swapTranslit()">⇄ Поменять</button>
+      <button class="btn" onclick="doTranslit()">Конвертировать</button>
+      <button class="btn secondary small" onclick="copyText('translitOutput')">Копировать</button>
+    </div>
+    <div class="two-col">
+      <div>
+        <label class="small">Исходный текст</label>
+        <textarea id="translitInput" placeholder="Введите текст...&#10;&#10;Примеры:&#10;देवनागरी → IAST&#10;namaḥ → देवनागरी" rows="6"></textarea>
+        <div class="kbd-grid" id="devKeyboard"></div>
+      </div>
+      <div>
+        <label class="small">Результат</label>
+        <div class="result-box iast" id="translitOutput"></div>
+        <button class="btn secondary small" style="margin-top:6px" onclick="sendToTranslate('translitOutput')">Отправить в перевод →</button>
+      </div>
+    </div>
+    <div class="info">Поддерживаются IAST (ā ī ū ṛ ṝ ḷ ṃ ḥ ś ṣ ṭ ḍ ṇ ñ ṅ) и Harvard-Kyoto (A I U R RR lR M H z S T D N J G)</div>
+  </div>
+</div>
+
+<!-- ====== TRANSLATE ====== -->
+<div id="tab-translate" class="tab">
+  <div class="card">
+    <h2>Перевод текста</h2>
+    <div class="btn-row">
+      <select id="translateFrom">
+        <option value="SA">Санскрит</option>
+        <option value="TA">Тамильский</option>
+        <option value="EN">Английский</option>
+        <option value="DE">Немецкий</option>
+        <option value="RU">Русский</option>
+      </select>
+      <span style="color:var(--muted);align-self:center">→</span>
+      <select id="translateTo">
+        <option value="RU">Русский</option>
+        <option value="EN">Английский</option>
+        <option value="DE">Немецкий</option>
+      </select>
+      <button class="btn" id="translateBtn" onclick="doTranslate()">Перевести</button>
+      <button class="btn secondary" type="button" onclick="openGoogleTranslateExternal()">Открыть в Google</button>
+    </div>
+    <div class="two-col">
+      <div>
+        <label class="small">Исходный текст</label>
+        <textarea id="translateInput" rows="8" placeholder="Введите текст для перевода..."></textarea>
+      </div>
+      <div>
+        <label class="small">Перевод</label>
+        <div class="result-box" id="translateOutput" style="min-height:160px"></div>
+      </div>
+    </div>
+    <div class="info" id="translateInfo">Для перевода на GitHub Pages нужен Google Translate Proxy. API-ключ Google хранится только в Cloudflare Worker, не в HTML.</div>
+  </div>
+</div>
+
+<!-- ====== PARALLEL ====== -->
+<div id="tab-parallel" class="tab">
+  <div class="card">
+    <h2>Параллельный режим: оригинал · транслитерация · перевод</h2>
+    <div class="btn-row">
+      <select id="parScript">
+        <option value="dev2iast">Деванагари → IAST</option>
+        <option value="tam2latin">Тамильский → Латиница</option>
+        <option value="none">Без транслитерации</option>
+      </select>
+      <select id="parLang">
+        <option value="SA">Санскрит</option>
+        <option value="TA">Тамильский</option>
+      </select>
+      <select id="parTo">
+        <option value="RU">→ Русский</option>
+        <option value="EN">→ Английский</option>
+        <option value="DE">→ Немецкий</option>
+      </select>
+      <button class="btn" onclick="doParallel()">Показать</button>
+    </div>
+    <textarea id="parInput" rows="5" placeholder="Вставьте текст..."></textarea>
+    <div class="parallel-grid" id="parGrid" style="margin-top:16px"></div>
+  </div>
+</div>
+
+<!-- ====== DICTIONARY ====== -->
+<div id="tab-dictionary" class="tab">
+  <div class="card">
+    <h2>Словарь Monier-Williams (Sanskrit)</h2>
+    <div class="btn-row">
+      <input type="text" id="dictInput" placeholder="Введите слово: IAST или деванагари" style="flex:1;background:var(--bg);border:1px solid var(--border);color:var(--text);padding:8px 12px;border-radius:7px;font-size:1rem" onkeydown="if(event.key==='Enter')dictSearch()">
+      <select id="dictScript">
+        <option value="iast">IAST</option>
+        <option value="devanagari">Деванагари</option>
+      </select>
+      <button class="btn" onclick="dictSearch()">Найти</button>
+    </div>
+    <div id="dictResult" class="dict-result">
+      <div class="info">Поиск по встроенному словарю Monier-Williams. Введите слово в IAST (например: <em>dharma, karma, brahman, ātman</em>) или деванагари.</div>
+    </div>
+  </div>
+  <div class="card">
+    <h2>Тамильский лексикон (Tamil Lexicon)</h2>
+    <div class="btn-row">
+      <input type="text" id="tamilDictInput" placeholder="Введите тамильское слово или латиницу" style="flex:1;background:var(--bg);border:1px solid var(--border);color:var(--text);padding:8px 12px;border-radius:7px;font-size:1rem" onkeydown="if(event.key==='Enter')tamilDictSearch()">
+      <button class="btn" onclick="tamilDictSearch()">Найти</button>
+    </div>
+    <div id="tamilDictResult" class="dict-result">
+      <div class="info">Поиск по встроенному тамильскому лексикону. Примеры: <em>அன்பு (anpu), தர்மம் (tarmam)</em></div>
+    </div>
+  </div>
+</div>
+
+<!-- ====== GRAMMAR ====== -->
+<div id="tab-grammar" class="tab">
+  <div class="card">
+    <h2>Грамматические формы (Sanskrit)</h2>
+    <div class="btn-row">
+      <input type="text" id="gramInput" placeholder="Основа слова в IAST (напр: deva, rāja, nāman)" style="flex:1;background:var(--bg);border:1px solid var(--border);color:var(--text);padding:8px 12px;border-radius:7px;font-size:1rem" onkeydown="if(event.key==='Enter')showGrammar()">
+      <select id="gramType">
+        <option value="a-m">a-основа, муж.</option>
+        <option value="a-n">a-основа, ср.</option>
+        <option value="aa-f">ā-основа, жен.</option>
+        <option value="i-m">i-основа, муж.</option>
+        <option value="u-m">u-основа, муж.</option>
+        <option value="an-m">an-основа, муж.</option>
+        <option value="verb-1">Глагол, 1 класс, Атмане</option>
+        <option value="verb-1p">Глагол, 1 класс, Парасмай</option>
+      </select>
+      <button class="btn" onclick="showGrammar()">Показать</button>
+    </div>
+    <div id="gramResult"></div>
+  </div>
+</div>
+
+<!-- ====== OCR ====== -->
+<div id="tab-ocr" class="tab">
+  <div class="card">
+    <h2>Распознавание текста с изображения (OCR)</h2>
+    <div class="btn-row">
+      <select id="ocrLang">
+        <option value="san">Санскрит (деванагари)</option>
+        <option value="tam">Тамильский</option>
+        <option value="hin">Хинди</option>
+        <option value="eng">Английский</option>
+      </select>
+    </div>
+    <div class="drop-zone" id="dropZone" onclick="document.getElementById('ocrFile').click()" ondragover="ocrDragOver(event)" ondrop="ocrDrop(event)">
+      <input type="file" id="ocrFile" accept="image/*" onchange="doOCR(this.files[0])">
+      <div style="font-size:2.5rem">📷</div>
+      <div style="margin-top:8px">Перетащите изображение или нажмите для выбора</div>
+      <div class="info">Лучше всего работает резкий скан или фото без наклона: тёмный текст, светлый фон, буквы крупные. Рукописи и декоративные шрифты Tesseract распознаёт плохо.</div>
+    </div>
+    <div id="ocrProgress" style="display:none;margin-top:12px">
+      <div style="color:var(--muted);margin-bottom:6px" id="ocrStatus">Инициализация...</div>
+      <div style="background:var(--bg);border-radius:4px;height:6px;overflow:hidden">
+        <div id="ocrBar" style="background:var(--accent);height:100%;width:0%;transition:width .3s"></div>
+      </div>
+    </div>
+    <div id="ocrResult" style="margin-top:14px"></div>
+  </div>
+</div>
+
+<!-- ====== FILES ====== -->
+<div id="tab-files" class="tab">
+  <div class="card">
+    <h2>Загрузка файлов</h2>
+    <div class="drop-zone" id="fileDropZone" onclick="document.getElementById('mainFile').click()" ondragover="ocrDragOver(event)" ondrop="fileDrop(event)">
+      <input type="file" id="mainFile" accept=".txt,.pdf,.md" onchange="loadFile(this.files[0])">
+      <div style="font-size:2.5rem">📄</div>
+      <div style="margin-top:8px">TXT · PDF · Markdown</div>
+      <div class="info">Для PDF извлекается текст (нужен интернет для PDF.js CDN при первом запуске)</div>
+    </div>
+    <div id="fileContent" style="margin-top:16px"></div>
+  </div>
+</div>
+
+<!-- ====== HISTORY ====== -->
+<div id="tab-history" class="tab">
+  <div class="card">
+    <h2>История операций</h2>
+    <div class="btn-row">
+      <button class="btn secondary small" onclick="clearHistory()">Очистить</button>
+    </div>
+    <div id="histList"></div>
+  </div>
+</div>
+
+<!-- PDF.js (локальные файлы) -->
+<script src="sanskrit-tools-assets/pdf.min.js"></script>
+<script>
+if(typeof pdfjsLib !== 'undefined') pdfjsLib.GlobalWorkerOptions.workerSrc = 'sanskrit-tools-assets/pdf.worker.min.js';
+
+// ============================================================
+// TRANSLATION PROXY
+// ============================================================
+let proxyUrl = localStorage.getItem('googleTranslateProxyUrl') || '';
+
+window.addEventListener('load', () => {
+  const proxyInput = document.getElementById('proxyUrlInput');
+  const saveBtn = document.getElementById('saveApiKeyBtn');
+  proxyInput.value = proxyUrl;
+  saveBtn.addEventListener('click', saveApiKey);
+  proxyInput.addEventListener('keydown', (event) => {
+    if (event.key === 'Enter') saveApiKey();
+  });
+  updateApiDot();
+  renderHistory();
+});
+
+function saveApiKey() {
+  proxyUrl = document.getElementById('proxyUrlInput').value.trim().replace(/\/$/, '');
+  localStorage.setItem('googleTranslateProxyUrl', proxyUrl);
+  updateApiDot();
+  const status = document.getElementById('apiSaveStatus');
+  status.textContent = proxyUrl ? 'адрес сохранён' : 'адрес очищен';
+  setTimeout(() => status.textContent = '', 1800);
+}
+
+function updateApiDot() {
+  const dot = document.getElementById('apiDot');
+  dot.className = 'api-dot' + (proxyUrl ? ' ok' : '');
+}
+
+// ============================================================
+// TABS
+// ============================================================
+function showTab(name) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('nav button').forEach(b => b.classList.remove('active'));
+  document.getElementById('tab-' + name).classList.add('active');
+  event.target.classList.add('active');
+}
+
+// ============================================================
+// TRANSLITERATION TABLES
+// ============================================================
+const DEV_VOWELS = {
+  'अ':'a','आ':'ā','इ':'i','ई':'ī','उ':'u','ऊ':'ū','ऋ':'ṛ','ॠ':'ṝ','ऌ':'ḷ',
+  'ए':'e','ऐ':'ai','ओ':'o','औ':'au'
+};
+const DEV_MATRAS = {
+  'ा':'ā','ि':'i','ी':'ī','ु':'u','ू':'ū','ृ':'ṛ','ॄ':'ṝ','ॢ':'ḷ',
+  'े':'e','ै':'ai','ो':'o','ौ':'au'
+};
+const DEV_CONS = {
+  'क':'k','ख':'kh','ग':'g','घ':'gh','ङ':'ṅ',
+  'च':'c','छ':'ch','ज':'j','झ':'jh','ञ':'ñ',
+  'ट':'ṭ','ठ':'ṭh','ड':'ḍ','ढ':'ḍh','ण':'ṇ',
+  'त':'t','थ':'th','द':'d','ध':'dh','न':'n',
+  'प':'p','फ':'ph','ब':'b','भ':'bh','म':'m',
+  'य':'y','र':'r','ल':'l','व':'v',
+  'श':'ś','ष':'ṣ','स':'s','ह':'h','ळ':'ḻ'
+};
+const DEV_SIGNS = {'ं':'ṃ','ः':'ḥ','ँ':'m̐','ॐ':'oṃ','।':'.','॥':'||','ऽ':'\''};
+
+const IAST_CONS = [
+  ['kh','ख'],['gh','घ'],['ch','छ'],['jh','झ'],['ṭh','ठ'],['ḍh','ढ'],['th','थ'],['dh','ध'],['ph','फ'],['bh','भ'],
+  ['k','क'],['g','ग'],['ṅ','ङ'],['c','च'],['j','ज'],['ñ','ञ'],
+  ['ṭ','ट'],['ḍ','ड'],['ṇ','ण'],['t','त'],['d','द'],['n','न'],
+  ['p','प'],['b','ब'],['m','म'],['y','य'],['r','र'],['l','ल'],['v','व'],
+  ['ś','श'],['ṣ','ष'],['s','स'],['h','ह'],['ḻ','ळ']
+];
+const IAST_MATRAS = [
+  ['ai','ै'],['au','ौ'],['ā','ा'],['ī','ी'],['ū','ू'],['ṛ','ृ'],['ṝ','ॄ'],['ḷ','ॢ'],
+  ['e','े'],['o','ो'],['i','ि'],['u','ु']
+];
+const IAST_INIT_VOWELS = [
+  ['ai','ऐ'],['au','औ'],['ā','आ'],['ī','ई'],['ū','ऊ'],['ṛ','ऋ'],['ṝ','ॠ'],['ḷ','ऌ'],
+  ['e','ए'],['o','ओ'],['i','इ'],['u','उ'],['a','अ']
+];
+
+// Harvard-Kyoto to IAST map
+const HK_TO_IAST = {
+  'A':'ā','I':'ī','U':'ū','R':'ṛ','RR':'ṝ','lR':'ḷ',
+  'M':'ṃ','H':'ḥ','G':'ṅ','J':'ñ',
+  'T':'ṭ','D':'ḍ','N':'ṇ',
+  'z':'ś','S':'ṣ',
+  'kh':'kh','gh':'gh','ch':'ch','jh':'jh','Th':'ṭh','Dh':'ḍh','th':'th','dh':'dh','ph':'ph','bh':'bh'
+};
+
+function devToIast(text) {
+  let result = '';
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i];
+    if (DEV_CONS[ch]) {
+      result += DEV_CONS[ch];
+      const next = text[i + 1];
+      if (next === '्') {
+        i++;
+      } else if (DEV_MATRAS[next]) {
+        result += DEV_MATRAS[next];
+        i++;
+      } else {
+        result += 'a';
+      }
+    } else if (DEV_VOWELS[ch]) {
+      result += DEV_VOWELS[ch];
+    } else if (DEV_SIGNS[ch]) {
+      result += DEV_SIGNS[ch];
+    } else if (DEV_MATRAS[ch]) {
+      result += DEV_MATRAS[ch];
+    } else if (ch !== '्') {
+      result += ch;
+    }
+  }
+  return result;
+}
+
+function iastToDev(text) {
+  let result = '';
+  let i = 0;
+  let prevWasCons = false;
+  text = text.toLowerCase().normalize('NFC');
+  text = text.replace(/ṁ/g,'ṃ').replace(/r̥̄/g,'ṝ').replace(/r̥/g,'ṛ');
+
+  while (i < text.length) {
+    let matched = false;
+    for (const [lat, dev] of IAST_CONS) {
+      if (text.startsWith(lat, i)) {
+        if (prevWasCons) result += '्';
+        result += dev;
+        i += lat.length;
+        let vowelMatched = false;
+        for (const [v, vm] of IAST_MATRAS) {
+          if (text.startsWith(v, i)) {
+            result += vm;
+            i += v.length;
+            vowelMatched = true;
+            break;
+          }
+        }
+        if (!vowelMatched && text[i] === 'a' && text[i + 1] !== 'i' && text[i + 1] !== 'u') {
+          i++;
+          vowelMatched = true;
+        }
+        prevWasCons = !vowelMatched;
+        matched = true;
+        break;
+      }
+    }
+    if (!matched) {
+      // Try vowels (initial)
+      let vMatched = false;
+      for (const [v, dv] of IAST_INIT_VOWELS) {
+        if (text.startsWith(v, i)) {
+          if (prevWasCons) result += '्'; // halant before vowel? no — just add vowel form
+          result += dv;
+          i += v.length;
+          prevWasCons = false;
+          vMatched = true;
+          break;
+        }
+      }
+      if (!vMatched) {
+        if (text[i] === 'ṃ') { result += 'ं'; i++; prevWasCons = false; }
+        else if (text[i] === 'ḥ') { result += 'ः'; i++; prevWasCons = false; }
+        else if (text[i] === ' ') { if(prevWasCons) result += '्'; result += ' '; i++; prevWasCons = false; }
+        else if (text[i] === '.') { result += '।'; i++; }
+        else { if(prevWasCons && /[^\u0300-\u036f]/.test(text[i])) { result += '्'; prevWasCons = false; } result += text[i]; i++; }
+      }
+    }
+  }
+  if (prevWasCons) result += '्';
+  return result;
+}
+
+// Tamil transliteration (ISO 15919 / Hunterian)
+const TAM_VOWELS = {'அ':'a','ஆ':'ā','இ':'i','ஈ':'ī','உ':'u','ஊ':'ū','எ':'e','ஏ':'ē','ஐ':'ai','ஒ':'o','ஓ':'ō','ஔ':'au'};
+const TAM_MATRAS = {'ா':'ā','ி':'i','ீ':'ī','ு':'u','ூ':'ū','ெ':'e','ே':'ē','ை':'ai','ொ':'o','ோ':'ō','ௌ':'au'};
+const TAM_CONS = {
+  'க':'k','ங':'ṅ','ச':'c','ஜ':'j','ஞ':'ñ','ட':'ṭ','ண':'ṇ','த':'t','ந':'n',
+  'ப':'p','ம':'m','ய':'y','ர':'r','ல':'l','வ':'v','ழ':'ḻ','ள':'ḷ','ற':'ṟ','ன':'ṉ',
+  'ஶ':'ś','ஷ':'ṣ','ஸ':'s','ஹ':'h'
+};
+const TAM_SIGNS = {'ஃ':'ḥ','ௐ':'om'};
+
+function tamToLatin(text) {
+  let result = '';
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i];
+    if (TAM_CONS[ch]) {
+      result += TAM_CONS[ch];
+      const next = text[i + 1];
+      if (next === '்') {
+        i++;
+      } else if (TAM_MATRAS[next]) {
+        result += TAM_MATRAS[next];
+        i++;
+      } else {
+        result += 'a';
+      }
+    } else if (TAM_VOWELS[ch]) {
+      result += TAM_VOWELS[ch];
+    } else if (TAM_SIGNS[ch]) {
+      result += TAM_SIGNS[ch];
+    } else if (TAM_MATRAS[ch]) {
+      result += TAM_MATRAS[ch];
+    } else if (ch !== '்') {
+      result += ch;
+    }
+  }
+  return result;
+}
+
+const LATIN_TO_TAM_CONS = {
+  'zh':'ழ','ṅ':'ங','ñ':'ஞ','ṇ':'ண','ṟ':'ற','ṉ':'ன','ḻ':'ழ','ḷ':'ள','ś':'ஶ','ṣ':'ஷ',
+  'k':'க','c':'ச','j':'ஜ','ṭ':'ட','t':'த','n':'ந','p':'ப','m':'ம','y':'ய','r':'ர','l':'ல','v':'வ','s':'ஸ','h':'ஹ'
+};
+const LATIN_TO_TAM_VOWELS = {'ai':'ஐ','au':'ஔ','ā':'ஆ','ē':'ஏ','ō':'ஓ','ī':'ஈ','ū':'ஊ','a':'அ','i':'இ','u':'உ','e':'எ','o':'ஒ'};
+const LATIN_TO_TAM_MATRAS = {'ai':'ை','au':'ௌ','ā':'ா','ē':'ே','ō':'ோ','ī':'ீ','ū':'ூ','i':'ி','u':'ு','e':'ெ','o':'ொ'};
+const TAMIL_LATIN_CONS_ORDER = ['zh','ṅ','ñ','ṇ','ṟ','ṉ','ḻ','ḷ','ś','ṣ','k','c','j','ṭ','t','n','p','m','y','r','l','v','s','h'];
+const TAMIL_LATIN_VOWEL_ORDER = ['ai','au','ā','ē','ō','ī','ū','a','i','u','e','o'];
+
+function matchSeq(text, index, seqs) {
+  for (const seq of seqs) {
+    if (text.startsWith(seq, index)) return seq;
+  }
+  return '';
+}
+
+function latinToTam(text) {
+  text = text.toLowerCase().normalize('NFC');
+  let result = '';
+  let i = 0;
+  while (i < text.length) {
+    const cons = matchSeq(text, i, TAMIL_LATIN_CONS_ORDER);
+    if (cons) {
+      result += LATIN_TO_TAM_CONS[cons];
+      i += cons.length;
+      const vowel = matchSeq(text, i, TAMIL_LATIN_VOWEL_ORDER);
+      if (vowel) {
+        if (vowel !== 'a') result += LATIN_TO_TAM_MATRAS[vowel];
+        i += vowel.length;
+      } else {
+        result += '்';
+      }
+      continue;
+    }
+    const vowel = matchSeq(text, i, TAMIL_LATIN_VOWEL_ORDER);
+    if (vowel) {
+      result += LATIN_TO_TAM_VOWELS[vowel];
+      i += vowel.length;
+    } else if (text.startsWith('ḥ', i)) {
+      result += 'ஃ';
+      i++;
+    } else {
+      result += text[i];
+      i++;
+    }
+  }
+  return result;
+}
+
+function hkToIast(text) {
+  let result = text;
+  // Multi-char first
+  result = result.replace(/RR/g,'ṝ');
+  result = result.replace(/lR/g,'ḷ');
+  result = result.replace(/Th/g,'ṭh');
+  result = result.replace(/Dh/g,'ḍh');
+  result = result.replace(/T(?!h)/g,'ṭ');
+  result = result.replace(/D(?!h)/g,'ḍ');
+  result = result.replace(/N/g,'ṇ');
+  result = result.replace(/A/g,'ā');
+  result = result.replace(/I/g,'ī');
+  result = result.replace(/U/g,'ū');
+  result = result.replace(/R(?!R)/g,'ṛ');
+  result = result.replace(/M/g,'ṃ');
+  result = result.replace(/H/g,'ḥ');
+  result = result.replace(/G/g,'ṅ');
+  result = result.replace(/J/g,'ñ');
+  result = result.replace(/z/g,'ś');
+  result = result.replace(/S/g,'ṣ');
+  return result;
+}
+
+function iastToHk(text) {
+  return text
+    .replace(/kh/g,'kh').replace(/gh/g,'gh').replace(/ch/g,'ch').replace(/jh/g,'jh')
+    .replace(/ṭh/g,'Th').replace(/ḍh/g,'Dh').replace(/th/g,'th').replace(/dh/g,'dh')
+    .replace(/ph/g,'ph').replace(/bh/g,'bh')
+    .replace(/ai/g,'ai').replace(/au/g,'au')
+    .replace(/ā/g,'A').replace(/ī/g,'I').replace(/ū/g,'U')
+    .replace(/ṝ/g,'RR').replace(/ṛ/g,'R').replace(/ḷ/g,'lR')
+    .replace(/ṃ/g,'M').replace(/ṁ/g,'M').replace(/ḥ/g,'H')
+    .replace(/ṅ/g,'G').replace(/ñ/g,'J').replace(/ṭ/g,'T').replace(/ḍ/g,'D').replace(/ṇ/g,'N')
+    .replace(/ś/g,'z').replace(/ṣ/g,'S');
+}
+
+function doTranslit() {
+  const mode = document.getElementById('scriptMode').value;
+  const input = document.getElementById('translitInput').value;
+  let output = '';
+  if (mode === 'dev2iast') output = devToIast(input);
+  else if (mode === 'iast2dev') output = iastToDev(input);
+  else if (mode === 'tam2latin') output = tamToLatin(input);
+  else if (mode === 'latin2tam') output = latinToTam(input);
+  else if (mode === 'dev2hk') output = iastToHk(devToIast(input));
+  else if (mode === 'hk2dev') output = iastToDev(hkToIast(input));
+  document.getElementById('translitOutput').textContent = output;
+  addHistory('translit', input.slice(0,60), output.slice(0,60));
+}
+
+function swapTranslit() {
+  const sel = document.getElementById('scriptMode');
+  const pairs = {'dev2iast':'iast2dev','iast2dev':'dev2iast','tam2latin':'latin2tam','latin2tam':'tam2latin','dev2hk':'hk2dev','hk2dev':'dev2hk'};
+  sel.value = pairs[sel.value] || sel.value;
+  const txt = document.getElementById('translitOutput').textContent;
+  document.getElementById('translitInput').value = txt;
+  document.getElementById('translitOutput').textContent = '';
+}
+
+function sendToTranslate(id) {
+  const txt = document.getElementById(id).textContent;
+  document.getElementById('translateInput').value = txt;
+  document.querySelectorAll('nav button').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('tab-translate').classList.add('active');
+  document.querySelectorAll('nav button')[1].classList.add('active');
+}
+
+// Devanagari keyboard shortcuts
+const devKeys = ['अ','आ','इ','ई','उ','ऊ','ऋ','ए','ऐ','ओ','औ','ं','ः','।','॥','क','ख','ग','घ','ङ','च','छ','ज','झ','ञ','ट','ठ','ड','ढ','ण','त','थ','द','ध','न','प','फ','ब','भ','म','य','र','ल','व','श','ष','स','ह','्'];
+window.addEventListener('load', () => {
+  const kb = document.getElementById('devKeyboard');
+  devKeys.forEach(k => {
+    const btn = document.createElement('button');
+    btn.className = 'kbd-key';
+    btn.textContent = k;
+    btn.onclick = () => {
+      const ta = document.getElementById('translitInput');
+      const pos = ta.selectionStart;
+      ta.value = ta.value.slice(0, pos) + k + ta.value.slice(ta.selectionEnd);
+      ta.setSelectionRange(pos+k.length, pos+k.length);
+      ta.focus();
+    };
+    kb.appendChild(btn);
+  });
+});
+
+// ============================================================
+// TRANSLATE (Google via proxy)
+// ============================================================
+function googleLang(lang) {
+  const map = { SA: 'sa', TA: 'ta', EN: 'en', DE: 'de', RU: 'ru' };
+  return map[lang] || lang.toLowerCase();
+}
+
+function googleRequestBody(text, sourceLang, targetLang) {
+  const body = {
+    provider: 'google',
+    q: text,
+    target: googleLang(targetLang),
+    format: 'text'
+  };
+  if (sourceLang) body.source = googleLang(sourceLang);
+  return body;
+}
+
+function translationErrorMessage(status, errText) {
+  const details = errText ? ': ' + errText.slice(0, 160) : '';
+  if (status === 403) return 'HTTP 403 — Google API ключ не принят или Cloud Translation API не включён.';
+  if (status === 429) return 'HTTP 429 — превышен лимит Google Translation API.';
+  if (status === 400) return 'HTTP 400 — Google не принял языковую пару или формат запроса.' + details;
+  return 'HTTP ' + status + details;
+}
+
+function networkErrorMessage(error) {
+  if (error && /failed to fetch|load failed|networkerror/i.test(error.message || '')) {
+    return 'Не удалось подключиться к Google Translate Proxy. Проверьте адрес прокси в шапке страницы.';
+  }
+  return error.message;
+}
+
+function getTranslationEndpoint() {
+  return proxyUrl;
+}
+
+function getTranslationHeaders() {
+  return { 'Content-Type': 'application/json' };
+}
+
+async function requestTranslation(text, sourceLang, targetLang) {
+  if (!proxyUrl) {
+    throw new Error('Для перевода нужен адрес Google Translate Proxy. Ключ Google нельзя безопасно хранить в HTML.');
+  }
+  const resp = await fetch(getTranslationEndpoint(), {
+    method: 'POST',
+    headers: getTranslationHeaders(),
+    body: JSON.stringify(googleRequestBody(text, sourceLang, targetLang))
+  });
+  if (!resp.ok) {
+    const errText = await resp.text().catch(() => '');
+    throw new Error(translationErrorMessage(resp.status, errText));
+  }
+  const data = await resp.json();
+  return data.translations[0].text;
+}
+
+function openGoogleTranslateExternal() {
+  const text = document.getElementById('translateInput').value.trim();
+  if (!text) return;
+  const from = googleLang(document.getElementById('translateFrom').value);
+  const to = document.getElementById('translateTo').value.toLowerCase();
+  const url = 'https://translate.google.com/?sl=' + from + '&tl=' + to + '&text=' + encodeURIComponent(text) + '&op=translate';
+  window.open(url, '_blank', 'noopener');
+}
+
+async function doTranslate() {
+  if (!proxyUrl) { alert('Для перевода нужен адрес Google Translate Proxy в шапке страницы'); return; }
+  const text = document.getElementById('translateInput').value.trim();
+  if (!text) return;
+  const from = document.getElementById('translateFrom').value;
+  const to = document.getElementById('translateTo').value;
+  const out = document.getElementById('translateOutput');
+  out.innerHTML = 'Переводим... <span class="spinner"></span>';
+  try {
+    const result = await requestTranslation(text, from, to);
+    out.textContent = result;
+    addHistory('translate', text.slice(0,60), result.slice(0,60));
+    document.getElementById('translateInfo').style.display = 'none';
+  } catch(e) {
+    out.innerHTML = '<span style="color:var(--accent)">Ошибка: ' + networkErrorMessage(e) + '</span>';
+  }
+}
+
+// ============================================================
+// PARALLEL MODE
+// ============================================================
+async function doParallel() {
+  const text = document.getElementById('parInput').value.trim();
+  if (!text) return;
+  const script = document.getElementById('parScript').value;
+  const lang = document.getElementById('parLang').value;
+  const to = document.getElementById('parTo').value;
+
+  let translit = text;
+  if (script === 'dev2iast') translit = devToIast(text);
+  else if (script === 'tam2latin') translit = tamToLatin(text);
+
+  const grid = document.getElementById('parGrid');
+  grid.innerHTML = `
+    <div class="card" style="margin:0">
+      <div class="tag">Оригинал</div>
+      <div class="result-box">${text}</div>
+    </div>
+    <div class="card" style="margin:0">
+      <div class="tag">Транслитерация</div>
+      <div class="result-box iast">${translit}</div>
+    </div>
+    <div class="card" style="margin:0">
+      <div class="tag">Перевод</div>
+      <div class="result-box" id="parTranslation">Переводим... <span class="spinner"></span></div>
+    </div>
+  `;
+
+  if (proxyUrl) {
+    try {
+      document.getElementById('parTranslation').textContent = await requestTranslation(text, lang, to.replace('→ ',''));
+    } catch(e) {
+      document.getElementById('parTranslation').textContent = 'Ошибка перевода: ' + networkErrorMessage(e);
+    }
+  } else {
+    document.getElementById('parTranslation').textContent = 'Нет адреса Google Translate Proxy';
+  }
+}
+
+// ============================================================
+// DICTIONARY (embedded mini-MW + Tamil)
+// ============================================================
+const MW_DICT = {
+  'dharma': { hw: 'dharma', gram: 'n. (m./n.)', meaning: 'закон, долг, правило, добродетель; установленный порядок; религиозный долг; природа вещей. От √dhṛ — держать, поддерживать. Один из четырёх пурушартх (целей жизни). В буддизме — учение Будды.' },
+  'karma': { hw: 'karma', gram: 'n.', meaning: 'действие, поступок; плод действий; работа, ритуал. От √kṛ — делать. Закон причины и следствия в индийской философии.' },
+  'brahman': { hw: 'brahman', gram: 'n. (Brahman) / m. (brāhmaṇa)', meaning: 'абсолютная реальность, Брахман (ср.р.); жрец, брахман (м.р.). От √bṛh — расти, расширяться.' },
+  'ātman': { hw: 'ātman', gram: 'm.', meaning: 'душа, самость, индивидуальное «я»; дыхание, жизнь. В Упанишадах — тождественен Брахману.' },
+  'yoga': { hw: 'yoga', gram: 'm.', meaning: 'союз, единение; метод, путь; применение, средство; система философии Патанджали. От √yuj — соединять, запрягать.' },
+  'deva': { hw: 'deva', gram: 'm.', meaning: 'бог, небожитель, небесное существо; царь, господин. От √div — сиять. Мн.ч.: devāḥ — боги.' },
+  'jñāna': { hw: 'jñāna', gram: 'n.', meaning: 'знание, познание, мудрость; различение истинного от ложного. От √jñā — знать. Один из путей освобождения (jñāna-mārga).' },
+  'mokṣa': { hw: 'mokṣa', gram: 'm.', meaning: 'освобождение, избавление от цикла рождений и смертей (saṃsāra). От √muc — освобождать. Высшая цель согласно индийской философии.' },
+  'māyā': { hw: 'māyā', gram: 'f.', meaning: 'иллюзия, магия, сила творения; видимый мир. В адвайта-веданте — сила, скрывающая истинную природу Брахмана.' },
+  'saṃsāra': { hw: 'saṃsāra', gram: 'm.', meaning: 'круговорот рождений и смертей; мирское существование; поток. От sam + √sṛ — течь.' },
+  'śiva': { hw: 'śiva', gram: 'm./adj.', meaning: 'благой, милостивый; Шива — бог разрушения и трансформации в индуизме.' },
+  'viṣṇu': { hw: 'viṣṇu', gram: 'm.', meaning: 'Вишну — бог-хранитель в индуизме. От √viṣ — пронизывать, распространяться.' },
+  'nāman': { hw: 'nāman', gram: 'n.', meaning: 'имя, название. Склоняется по an-основе: nom. nāma, acc. nāma, gen. nāmnas.' },
+  'śakti': { hw: 'śakti', gram: 'f.', meaning: 'сила, мощь, энергия; женская творческая сила; богиня. От √śak — быть способным.' },
+  'prana': { hw: 'prāṇa', gram: 'm.', meaning: 'жизненное дыхание, жизненная сила; один из пяти видов прāны. От pra + √an — дышать.' },
+  'prāṇa': { hw: 'prāṇa', gram: 'm.', meaning: 'жизненное дыхание, жизненная сила; один из пяти видов прāны. От pra + √an — дышать.' },
+  'om': { hw: 'oṃ / om', gram: 'indecl.', meaning: 'священный слог; мистический звук вселенной. Символ Брахмана. Составлен из а + у + м.' },
+  'oṃ': { hw: 'oṃ', gram: 'indecl.', meaning: 'священный слог; мистический звук вселенной. Символ Брахмана.' },
+  'guru': { hw: 'guru', gram: 'm./adj.', meaning: 'тяжёлый, важный; учитель, наставник. От √gur — быть тяжёлым.' },
+  'mantra': { hw: 'mantra', gram: 'm./n.', meaning: 'священная формула, гимн, заклинание. От man + √tṛ — инструмент мышления/защиты.' },
+  'avatāra': { hw: 'avatāra', gram: 'm.', meaning: 'нисхождение бога на землю, воплощение (особ. Вишну). От ava + √tṛ — переходить, сходить.' },
+  'rāja': { hw: 'rājan', gram: 'm.', meaning: 'царь, правитель. Основа rājan- (an-склонение): nom. rājā, acc. rājānam.' },
+  'agni': { hw: 'agni', gram: 'm.', meaning: 'огонь; бог огня Агни. Родств. латин. ignis.' },
+  'veda': { hw: 'veda', gram: 'm.', meaning: 'знание; четыре священные книги — Ṛgveda, Sāmaveda, Yajurveda, Atharvaveda. От √vid — знать.' },
+  'upaniṣad': { hw: 'upaniṣad', gram: 'f.', meaning: 'тайное учение, сидение рядом с учителем; тексты философии веданты. От upa + ni + √sad — сидеть рядом.' },
+  'sūtra': { hw: 'sūtra', gram: 'n.', meaning: 'нить; краткое правило, афоризм. Сборники сутр — основа многих школ.' },
+  'ānanda': { hw: 'ānanda', gram: 'm.', meaning: 'блаженство, радость, счастье. Третий компонент сат-чит-ānanda (бытие-сознание-блаженство).' },
+  'sat': { hw: 'sat', gram: 'adj./n.', meaning: 'сущий, истинный; бытие, реальность. Часть формулы sat-cit-ānanda.' },
+  'cit': { hw: 'cit', gram: 'f.', meaning: 'сознание, чистое осознание. В веданте — природа Брахмана.' },
+  'kṛṣṇa': { hw: 'kṛṣṇa', gram: 'm./adj.', meaning: 'тёмный, чёрный; Кришна — восьмое воплощение Вишну. От √kṛṣ — чертить, притягивать.' },
+  'rāma': { hw: 'rāma', gram: 'm.', meaning: 'радостный, прекрасный; Рама — седьмое воплощение Вишну, герой Рамаяны.' },
+  'ahiṃsā': { hw: 'ahiṃsā', gram: 'f.', meaning: 'ненасилие, непричинение вреда. Первая яма в системе Патанджали.' },
+  'tapas': { hw: 'tapas', gram: 'n.', meaning: 'аскеза, жар духовной практики; самодисциплина. От √tap — нагревать.' },
+  'samādhi': { hw: 'samādhi', gram: 'm.', meaning: 'глубокое сосредоточение, медитативное поглощение; высшее состояние йоги.' },
+  'cakra': { hw: 'cakra', gram: 'n.', meaning: 'колесо, круг; диск Вишну; в тантре — энергетический центр тела.' },
+  'nāḍī': { hw: 'nāḍī', gram: 'f.', meaning: 'трубка, канал; энергетический канал в йоге. Ок. 72 000 нāḍī в теле.' },
+  'kuṇḍalinī': { hw: 'kuṇḍalinī', gram: 'f.', meaning: 'свёрнутая (как змея); скрытая космическая энергия у основания позвоночника.' }
+};
+
+const TAMIL_DICT = {
+  'அன்பு': { hw: 'அன்பு', latin: 'anpu', meaning: 'любовь, привязанность, нежность' },
+  'தர்மம்': { hw: 'தர்மம்', latin: 'tarmam', meaning: 'дхарма, справедливость, долг, добродетель' },
+  'அறம்': { hw: 'அறம்', latin: 'aṟam', meaning: 'добродетель, этика, праведность; одна из трёх целей (அறம் பொருள் இன்பம்)' },
+  'பொருள்': { hw: 'பொருள்', latin: 'poruḷ', meaning: 'значение, смысл; богатство, ценность; материальное благо' },
+  'இன்பம்': { hw: 'இன்பம்', latin: 'inpam', meaning: 'удовольствие, радость, счастье' },
+  'வீடு': { hw: 'வீடு', latin: 'vīṭu', meaning: 'дом; освобождение (мокша в тамильской традиции)' },
+  'கடவுள்': { hw: 'kaṭavuḷ', latin: 'kaṭavuḷ', meaning: 'Бог, божество. Буквально: «тот, кто превосходит»' },
+  'ஆன்மா': { hw: 'ஆன்மா', latin: 'āṉmā', meaning: 'душа, атман' },
+  'மனம்': { hw: 'மனம்', latin: 'maṉam', meaning: 'ум, разум, сердце' },
+  'ஞானம்': { hw: 'ஞானம்', latin: 'ñāṉam', meaning: 'знание, мудрость (= санскр. jñāna)' },
+  'சிவம்': { hw: 'சிவம்', latin: 'civam', meaning: 'Шива; благость, высшая реальность в шайва-сиддханте' },
+  'சக்தி': { hw: 'சக்தி', latin: 'cakti', meaning: 'сила, энергия; Шакти (= санскр. śakti)' },
+  'யோகம்': { hw: 'யோகம்', latin: 'yōkam', meaning: 'йога, союз (= санскр. yoga)' },
+  'வேதம்': { hw: 'வேதம்', latin: 'vētam', meaning: 'Веды (= санскр. veda)' },
+  'மந்திரம்': { hw: 'மந்திரம்', latin: 'mantiram', meaning: 'мантра, священная формула' },
+  'திருக்குறள்': { hw: 'திருக்குறள்', latin: 'tirukkuṟaḷ', meaning: 'Тируккурал — классический тамильский текст этики Тируваллувара' }
+};
+
+function dictSearch() {
+  const query = document.getElementById('dictInput').value.trim().toLowerCase();
+  const res = document.getElementById('dictResult');
+  if (!query) return;
+
+  // Try direct match, then partial
+  let entries = [];
+  for (const [key, val] of Object.entries(MW_DICT)) {
+    if (key === query || key.includes(query) || query.includes(key)) {
+      entries.push(val);
+    }
+  }
+  if (entries.length === 0) {
+    res.innerHTML = '<div class="info">Слово не найдено. Попробуйте: dharma, karma, yoga, deva, brahman, ātman, mokṣa, māyā, guru, mantra, cakra, kuṇḍalinī</div>';
+    return;
+  }
+  res.innerHTML = entries.map(e => `
+    <div class="dict-entry">
+      <div class="headword">${e.hw}</div>
+      <div class="grammar">${e.gram}</div>
+      <div class="meaning">${e.meaning}</div>
+    </div>
+  `).join('');
+}
+
+function tamilDictSearch() {
+  const query = document.getElementById('tamilDictInput').value.trim();
+  const res = document.getElementById('tamilDictResult');
+  if (!query) return;
+  let entries = [];
+  for (const [key, val] of Object.entries(TAMIL_DICT)) {
+    if (key === query || val.latin.includes(query.toLowerCase()) || key.includes(query)) {
+      entries.push(val);
+    }
+  }
+  if (entries.length === 0) {
+    res.innerHTML = '<div class="info">Не найдено. Попробуйте тамильским шрифтом: அன்பு, சிவம், ஆன்மா — или латиницей: anpu, civam</div>';
+    return;
+  }
+  res.innerHTML = entries.map(e => `
+    <div class="dict-entry">
+      <div class="headword" style="font-family:\'Noto Sans Tamil\',serif">${e.hw}</div>
+      <div class="grammar">${e.latin}</div>
+      <div class="meaning">${e.meaning}</div>
+    </div>
+  `).join('');
+}
+
+// ============================================================
+// GRAMMAR TABLES
+// ============================================================
+const CASES_RU = ['Им.','Вин.','Тв.','Дат.','Отл.','Род.','Мест.','Зват.'];
+const CASES_SA = ['Nom.','Acc.','Instr.','Dat.','Abl.','Gen.','Loc.','Voc.'];
+
+const DECLENSIONS = {
+  'a-m': {
+    label: 'a-основа, мужской род (deva → «бог»)',
+    sg: ['aḥ','am','ena','āya','āt','asya','e','a'],
+    du: ['au','au','ābhyām','ābhyām','ābhyām','oḥ','oḥ','au'],
+    pl: ['āḥ','ān','aiḥ','ebhyaḥ','ebhyaḥ','ānām','eṣu','āḥ']
+  },
+  'a-n': {
+    label: 'a-основа, средний род (karma → «действие»)',
+    sg: ['am','am','ena','āya','āt','asya','e','a'],
+    du: ['e','e','ābhyām','ābhyām','ābhyām','oḥ','oḥ','e'],
+    pl: ['āni','āni','aiḥ','ebhyaḥ','ebhyaḥ','ānām','eṣu','āni']
+  },
+  'aa-f': {
+    label: 'ā-основа, женский род (māyā → «иллюзия»)',
+    sg: ['ā','ām','ayā','āyai','āyāḥ','āyāḥ','āyām','e'],
+    du: ['e','e','ābhyām','ābhyām','ābhyām','oḥ','oḥ','e'],
+    pl: ['āḥ','āḥ','ābhiḥ','ābhyaḥ','ābhyaḥ','ānām','āsu','āḥ']
+  },
+  'i-m': {
+    label: 'i-основа, мужской род (agni → «огонь»)',
+    sg: ['iḥ','im','inā','aye','eḥ','eḥ','au','e'],
+    du: ['ī','ī','ibhyām','ibhyām','ibhyām','yoḥ','yoḥ','ī'],
+    pl: ['ayaḥ','īn','ibhiḥ','ibhyaḥ','ibhyaḥ','īnām','iṣu','ayaḥ']
+  },
+  'u-m': {
+    label: 'u-основа, мужской род (guru → «учитель»)',
+    sg: ['uḥ','um','unā','ave','oḥ','oḥ','au','o'],
+    du: ['ū','ū','ubhyām','ubhyām','ubhyām','voḥ','voḥ','ū'],
+    pl: ['avaḥ','ūn','ubhiḥ','ubhyaḥ','ubhyaḥ','ūnām','uṣu','avaḥ']
+  },
+  'an-m': {
+    label: 'an-основа, мужской род (rājan → «царь»)',
+    sg: ['ā','ānam','ñā','ne','naḥ','naḥ','ni','an'],
+    du: ['ānau','ānau','ābhyām','ābhyām','ābhyām','noḥ','noḥ','ānau'],
+    pl: ['ānaḥ','naḥ','abhiḥ','abhyaḥ','abhyaḥ','nām','asu','ānaḥ']
+  }
+};
+
+const VERB_TABLES = {
+  'verb-1p': {
+    label: 'Глагол 1 класса, Парасмайпада (bhū → «быть»; основа настоящего: бхав-)',
+    headers: ['Лицо','Ед.ч.','Дв.ч.','Мн.ч.'],
+    rows: [
+      ['3-е (sa)','bhavati','bhavataḥ','bhavanti'],
+      ['2-е (tvam)','bhavasi','bhavathaḥ','bhavatha'],
+      ['1-е (aham)','bhavāmi','bhavāvaḥ','bhavāmaḥ']
+    ]
+  },
+  'verb-1': {
+    label: 'Глагол 1 класса, Ātmanepada (labh → «получать»; основа: лабх-)',
+    headers: ['Лицо','Ед.ч.','Дв.ч.','Мн.ч.'],
+    rows: [
+      ['3-е (sa)','labhate','labhete','labhante'],
+      ['2-е (tvam)','labhase','labhāthe','labhadhve'],
+      ['1-е (aham)','labhe','labhāvahe','labhāmahe']
+    ]
+  }
+};
+
+function showGrammar() {
+  const base = document.getElementById('gramInput').value.trim() || '—';
+  const type = document.getElementById('gramType').value;
+  const res = document.getElementById('gramResult');
+
+  if (type.startsWith('verb')) {
+    const tbl = VERB_TABLES[type];
+    res.innerHTML = `
+      <div class="card" style="margin-top:10px">
+        <h2>${tbl.label} <em style="color:var(--muted);font-size:0.85rem">(введено: ${base})</em></h2>
+        <table class="grammar-table">
+          <tr>${tbl.headers.map(h=>`<th>${h}</th>`).join('')}</tr>
+          ${tbl.rows.map(r=>`<tr>${r.map((c,i)=>`<td>${c}</td>`).join('')}</tr>`).join('')}
+        </table>
+        <div class="info" style="margin-top:8px">Подставьте вашу основу: замените bhav-/labh- на основу вашего глагола + окончания</div>
+      </div>`;
+    return;
+  }
+
+  const decl = DECLENSIONS[type];
+  if (!decl) return;
+
+  const makeForms = (endings, stem) => endings.map(e => stem + e);
+  // For display show endings; if user typed a stem, show full forms
+  const showForms = base !== '—';
+
+  res.innerHTML = `
+    <div class="card" style="margin-top:10px">
+      <h2>${decl.label} <em style="color:var(--muted);font-size:0.85rem">${showForms ? '(основа: '+base+')' : ''}</em></h2>
+      <table class="grammar-table">
+        <tr><th>Падеж</th><th>Ед.ч.</th><th>Дв.ч.</th><th>Мн.ч.</th></tr>
+        ${CASES_RU.map((c,i) => `
+          <tr>
+            <td><strong>${c}</strong> <span style="color:var(--muted);font-size:0.78rem">${CASES_SA[i]}</span></td>
+            <td class="iast">${showForms ? base+decl.sg[i] : '-'+decl.sg[i]}</td>
+            <td class="iast">${showForms ? base+decl.du[i] : '-'+decl.du[i]}</td>
+            <td class="iast">${showForms ? base+decl.pl[i] : '-'+decl.pl[i]}</td>
+          </tr>
+        `).join('')}
+      </table>
+      <div class="info" style="margin-top:8px">Примеры: a-m: dev(a), kṛṣṇ(a) | ā-f: māy(ā), śakt(ī) | i-m: agn(i) | u-m: gur(u) | an-m: rāj(an)</div>
+    </div>`;
+}
+
+// ============================================================
+// OCR
+// ============================================================
+function ocrDragOver(e) { e.preventDefault(); e.currentTarget.classList.add('over'); }
+function ocrDrop(e) {
+  e.preventDefault();
+  e.currentTarget.classList.remove('over');
+  const f = e.dataTransfer.files[0];
+  if (f) doOCR(f);
+}
+
+async function doOCR(file) {
+  if (!file) return;
+  const lang = document.getElementById('ocrLang').value;
+  const prog = document.getElementById('ocrProgress');
+  const status = document.getElementById('ocrStatus');
+  const bar = document.getElementById('ocrBar');
+  const res = document.getElementById('ocrResult');
+  prog.style.display = 'block';
+  res.innerHTML = '';
+
+  try {
+    const image = await prepareImageForOCR(file);
+    const worker = await Tesseract.createWorker(lang, 1, {
+      workerPath: 'sanskrit-tools-assets/worker.min.js',
+      langPath: 'sanskrit-tools-assets/',
+      gzip: true,
+      logger: m => {
+        if (m.status === 'recognizing text') {
+          bar.style.width = (m.progress * 100).toFixed(0) + '%';
+          status.textContent = 'Распознавание: ' + (m.progress * 100).toFixed(0) + '%';
+        } else {
+          status.textContent = m.status;
+        }
+      }
+    });
+    await worker.setParameters({
+      tessedit_pageseg_mode: '6',
+      preserve_interword_spaces: '1'
+    });
+    const { data: { text, confidence } } = await worker.recognize(image);
+    await worker.terminate();
+    prog.style.display = 'none';
+    const safeText = (text || '').replace(/</g,'&lt;');
+    res.innerHTML = `
+      <div class="card" style="margin:0">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+          <span class="tag">Распознано (уверенность: ${confidence.toFixed(0)}%)</span>
+          <button class="btn secondary small" onclick="copyText('ocrText')">Копировать</button>
+        </div>
+        <div class="result-box" id="ocrText">${safeText || 'Текст не найден. Попробуйте более резкое фото, без наклона, с белым фоном и крупными буквами.'}</div>
+        <button class="btn secondary small" style="margin-top:8px" onclick="sendOcrToTranslit()">→ В транслитерацию</button>
+        <button class="btn secondary small" style="margin-top:8px;margin-left:4px" onclick="sendOcrToTranslate()">→ В перевод</button>
+      </div>`;
+    addHistory('ocr', file.name, text.slice(0,80));
+  } catch(e) {
+    prog.style.display = 'none';
+    res.innerHTML = '<div style="color:var(--accent)">Ошибка OCR: ' + e.message + '</div>';
+  }
+}
+
+function prepareImageForOCR(file) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => {
+      const scale = Math.min(3, Math.max(1.5, 1800 / Math.max(img.width, img.height)));
+      const canvas = document.createElement('canvas');
+      canvas.width = Math.round(img.width * scale);
+      canvas.height = Math.round(img.height * scale);
+      const ctx = canvas.getContext('2d', { willReadFrequently: true });
+      ctx.fillStyle = '#fff';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.imageSmoothingEnabled = true;
+      ctx.imageSmoothingQuality = 'high';
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+
+      const data = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      for (let i = 0; i < data.data.length; i += 4) {
+        const gray = data.data[i] * 0.299 + data.data[i + 1] * 0.587 + data.data[i + 2] * 0.114;
+        const boosted = gray < 170 ? Math.max(0, gray - 35) : Math.min(255, gray + 35);
+        const bw = boosted < 150 ? 0 : 255;
+        data.data[i] = bw;
+        data.data[i + 1] = bw;
+        data.data[i + 2] = bw;
+        data.data[i + 3] = 255;
+      }
+      ctx.putImageData(data, 0, 0);
+      canvas.toBlob(blob => blob ? resolve(blob) : reject(new Error('Не удалось подготовить изображение')), 'image/png');
+    };
+    img.onerror = () => reject(new Error('Не удалось прочитать изображение'));
+    img.src = URL.createObjectURL(file);
+  });
+}
+
+function sendOcrToTranslit() {
+  const txt = document.getElementById('ocrText').textContent;
+  document.getElementById('translitInput').value = txt;
+  showTabDirect('translit');
+}
+function sendOcrToTranslate() {
+  const txt = document.getElementById('ocrText').textContent;
+  document.getElementById('translateInput').value = txt;
+  showTabDirect('translate');
+}
+function showTabDirect(name) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('nav button').forEach(b => b.classList.remove('active'));
+  document.getElementById('tab-' + name).classList.add('active');
+  const idx = {translit:0,translate:1,parallel:2,dictionary:3,grammar:4,ocr:5,files:6,history:7};
+  document.querySelectorAll('nav button')[idx[name]].classList.add('active');
+}
+
+// ============================================================
+// FILES
+// ============================================================
+async function loadFile(file) {
+  if (!file) return;
+  const ext = file.name.split('.').pop().toLowerCase();
+  const area = document.getElementById('fileContent');
+  area.innerHTML = '<div class="info">Загружаем...</div>';
+
+  if (ext === 'txt' || ext === 'md') {
+    const text = await file.text();
+    showFileContent(text, file.name);
+  } else if (ext === 'pdf') {
+    try {
+      const arrayBuffer = await file.arrayBuffer();
+      const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+      let fullText = '';
+      for (let i = 1; i <= pdf.numPages; i++) {
+        const page = await pdf.getPage(i);
+        const content = await page.getTextContent();
+        fullText += content.items.map(s => s.str).join(' ') + '\n';
+      }
+      showFileContent(fullText, file.name + ' (' + pdf.numPages + ' стр.)');
+    } catch(e) {
+      area.innerHTML = '<div style="color:var(--accent)">Ошибка PDF: ' + e.message + '</div>';
+    }
+  } else {
+    area.innerHTML = '<div class="info">Формат не поддерживается. Используйте TXT, MD, PDF.</div>';
+  }
+}
+
+function fileDrop(e) {
+  e.preventDefault();
+  loadFile(e.dataTransfer.files[0]);
+}
+
+function showFileContent(text, name) {
+  document.getElementById('fileContent').innerHTML = `
+    <div class="card" style="margin:0">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+        <span class="tag">${name}</span>
+        <div style="display:flex;gap:6px">
+          <button class="btn secondary small" onclick="copyText('fileText')">Копировать</button>
+          <button class="btn secondary small" onclick="document.getElementById('translateInput').value=document.getElementById('fileText').textContent;showTabDirect('translate')">→ Перевести</button>
+          <button class="btn secondary small" onclick="document.getElementById('translitInput').value=document.getElementById('fileText').textContent;showTabDirect('translit')">→ Транслит</button>
+        </div>
+      </div>
+      <div class="result-box" id="fileText" style="max-height:400px;overflow-y:auto">${text.replace(/</g,'&lt;')}</div>
+    </div>`;
+}
+
+// ============================================================
+// HISTORY
+// ============================================================
+function addHistory(type, input, output) {
+  const hist = JSON.parse(localStorage.getItem('hist') || '[]');
+  hist.unshift({ type, input, output, time: new Date().toLocaleTimeString() });
+  if (hist.length > 50) hist.pop();
+  localStorage.setItem('hist', JSON.stringify(hist));
+}
+
+function renderHistory() {
+  const hist = JSON.parse(localStorage.getItem('hist') || '[]');
+  const list = document.getElementById('histList');
+  if (!hist.length) { list.innerHTML = '<div class="info">История пуста</div>'; return; }
+  const labels = { translit: 'Транслит', translate: 'Перевод', ocr: 'OCR' };
+  list.innerHTML = hist.map(h => `
+    <div class="hist-item">
+      <span class="tag">${labels[h.type] || h.type}</span>
+      <div class="hi-text">
+        <div>${h.input}</div>
+        <div style="color:var(--muted)">${h.output}</div>
+      </div>
+      <div class="hi-time">${h.time}</div>
+    </div>
+  `).join('');
+}
+
+function clearHistory() {
+  localStorage.removeItem('hist');
+  renderHistory();
+}
+
+// ============================================================
+// UTILS
+// ============================================================
+function copyText(id) {
+  const el = document.getElementById(id);
+  navigator.clipboard.writeText(el.textContent || el.innerText).then(() => {
+    const orig = el.style.borderColor;
+    el.style.borderColor = 'var(--green)';
+    setTimeout(() => el.style.borderColor = orig, 800);
+  });
+}
+</script>
+
+<footer style="background:var(--surface);border-top:1px solid var(--border);margin-top:40px;padding:24px;text-align:center;font-size:0.8rem;color:var(--muted);line-height:1.8">
+  <div style="max-width:800px;margin:0 auto">
+    <div style="margin-bottom:10px;color:var(--text);font-size:0.85rem">
+      <strong style="color:var(--accent2)">Sanskrit &amp; Tamil Tools</strong> — независимый образовательный проект, созданный для изучения санскрита, тамильского языка и классических текстов Индии.
+    </div>
+    <div style="margin-bottom:12px">
+      🔒 <strong style="color:var(--text)">Конфиденциальность:</strong> транслитерация, словарь, грамматика, OCR и работа с файлами выполняются локально в вашем браузере. Никакие тексты, изображения и файлы не передаются разработчику и не сохраняются на стороне разработчика. Единственное исключение — машинный перевод: текст отправляется на ваш Google Translate Proxy, который обращается к Google Cloud Translation. API-ключ Google хранится только в вашем Cloudflare Worker и не публикуется в HTML.
+    </div>
+    <div style="border-top:1px solid var(--border);padding-top:12px;color:var(--muted)">
+      © 2026 Светлана Кройцер. Все права защищены.
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>
