@@ -14,32 +14,29 @@
   }
   :root {
     --bg: #ffffff;
-    --surface: #fff6f3;
-    --card: #ffeae3;
+    --surface: #faf4ea;
+    --card: #f1e6d3;
     --accent: #ef5024;
     --accent2: #df2227;
-    --text: #2a1712;
-    --muted: #9a6f60;
-    --border: #f4cdbf;
-    --green: #2e9e58;
-    --radius: 10px;
-    --display: 'Jaipur', 'Segoe UI', Arial, sans-serif;
+    --text: #2a2320;
+    --muted: #6b625c;
+    --border: rgba(0,0,0,.12);
+    --radius: 12px;
+    --display: 'Jaipur', Georgia, serif;
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { background: var(--bg); color: var(--text); font-family: Arial, Helvetica, sans-serif; min-height: 100vh; }
 
   header {
-    background: var(--surface);
-    border-bottom: 3px solid transparent;
-    border-image: linear-gradient(90deg, var(--accent), var(--accent2)) 1;
-    padding: 16px 24px;
+    background: linear-gradient(135deg, var(--accent2) 0%, var(--accent) 100%);
+    padding: 18px 24px;
     display: flex;
     align-items: center;
     gap: 16px;
     flex-wrap: wrap;
   }
-  header h1 { font-family: var(--display); font-size: 1.7rem; color: var(--accent2); letter-spacing: 1px; font-weight: normal; }
-  header span { color: var(--muted); font-size: 0.85rem; }
+  header h1 { font-family: var(--display); font-size: clamp(1.6rem, 5vw, 2.3rem); color: #fff; letter-spacing: 1px; font-weight: normal; line-height: 1.15; }
+  header span { color: rgba(255,255,255,.92); font-size: 0.85rem; }
 
   .api-bar {
     margin-left: auto;
@@ -56,8 +53,8 @@
     font-size: 0.78rem;
     width: 260px;
   }
-  .api-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--muted); }
-  .api-dot.ok { background: var(--green); }
+  .api-dot { width: 10px; height: 10px; border-radius: 50%; background: rgba(255,255,255,.45); }
+  .api-dot.ok { background: #fff; }
 
   nav {
     display: flex;
@@ -93,7 +90,7 @@
     padding: 20px;
     margin-bottom: 16px;
   }
-  .card h2 { font-family: var(--display); font-size: 1.25rem; color: var(--accent2); margin-bottom: 14px; font-weight: normal; letter-spacing: 0.5px; }
+  .card h2 { font-family: Arial, Helvetica, sans-serif; font-weight: 700; text-transform: uppercase; font-size: 1.05rem; color: var(--accent2); margin-bottom: 14px; letter-spacing: 0.04em; }
 
   .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
   @media(max-width:700px){ .two-col { grid-template-columns: 1fr; } }
@@ -118,18 +115,22 @@
     background: var(--accent);
     border: none;
     color: #fff;
-    padding: 8px 18px;
-    border-radius: 7px;
+    padding: 9px 18px;
+    border-radius: 8px;
     cursor: pointer;
-    font-size: 0.88rem;
-    transition: opacity .2s;
+    font-size: 0.82rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    transition: background-color .15s ease;
   }
-  button.btn:hover { opacity: 0.85; }
+  button.btn:hover { background: var(--accent2); }
   button.btn.secondary {
     background: var(--card);
     border: 1px solid var(--border);
     color: var(--text);
   }
+  button.btn.secondary:hover { background: var(--accent2); color: #fff; }
   button.btn.small { padding: 5px 12px; font-size: 0.78rem; }
   button.btn:disabled { opacity: 0.4; cursor: not-allowed; }
 
@@ -256,14 +257,14 @@
 <body>
 
 <header>
-  <h1>🕉 Sanskrit &amp; Tamil Tools</h1>
+  <h1>Sanskrit &amp; Tamil Tools</h1>
   <span>Транслитерация · Перевод · Словарь · OCR</span>
   <div class="api-bar">
     <span id="apiDot" class="api-dot"></span>
-    <label class="small" style="margin:0;color:var(--muted)">Gemini API:</label>
-    <input type="password" id="apiKeyInput" placeholder="вставьте ключ Gemini">
+    <label class="small" id="apiKeyLabel" style="margin:0;color:rgba(255,255,255,.92)">Claude API:</label>
+    <input type="password" id="apiKeyInput" placeholder="вставьте ключ Claude (sk-ant-…)">
     <button class="btn small" id="saveApiKeyBtn" type="button">Сохранить</button>
-    <span id="apiSaveStatus" class="small" style="color:var(--green)"></span>
+    <span id="apiSaveStatus" class="small" style="color:#fff"></span>
   </div>
 </header>
 
@@ -341,7 +342,7 @@
         <div class="result-box" id="translateOutput" style="min-height:160px"></div>
       </div>
     </div>
-    <div class="info" id="translateInfo">Для перевода введите Gemini API ключ в шапке страницы и нажмите «Сохранить». Получить бесплатный ключ: <a href="https://aistudio.google.com/apikey" target="_blank" style="color:var(--accent2)">aistudio.google.com/apikey</a></div>
+    <div class="info" id="translateInfo">Для перевода введите API-ключ Claude в шапке страницы и нажмите «Сохранить». Получить ключ: <a href="https://console.anthropic.com/settings/keys" target="_blank" style="color:var(--accent2)">console.anthropic.com</a> (требуется пополнение баланса).</div>
   </div>
 </div>
 
@@ -435,7 +436,6 @@
     </div>
     <div class="drop-zone" id="dropZone" onclick="document.getElementById('ocrFile').click()" ondragover="ocrDragOver(event)" ondrop="ocrDrop(event)">
       <input type="file" id="ocrFile" accept="image/*" onchange="doOCR(this.files[0])">
-      <div style="font-size:2.5rem">📷</div>
       <div style="margin-top:8px">Перетащите изображение или нажмите для выбора</div>
       <div class="info">Лучше всего работает резкий скан или фото без наклона: тёмный текст, светлый фон, буквы крупные. Рукописи и декоративные шрифты Tesseract распознаёт плохо.</div>
     </div>
@@ -455,7 +455,6 @@
     <h2>Загрузка файлов</h2>
     <div class="drop-zone" id="fileDropZone" onclick="document.getElementById('mainFile').click()" ondragover="ocrDragOver(event)" ondrop="fileDrop(event)">
       <input type="file" id="mainFile" accept=".txt,.pdf,.md" onchange="loadFile(this.files[0])">
-      <div style="font-size:2.5rem">📄</div>
       <div style="margin-top:8px">TXT · PDF · Markdown</div>
       <div class="info">Для PDF извлекается текст (нужен интернет для PDF.js CDN при первом запуске)</div>
     </div>
@@ -480,9 +479,9 @@
 if(typeof pdfjsLib !== 'undefined') pdfjsLib.GlobalWorkerOptions.workerSrc = 'sanskrit-tools-assets/pdf.worker.min.js';
 
 // ============================================================
-// API KEY (Gemini)
+// API KEY (Anthropic Claude)
 // ============================================================
-let apiKey = localStorage.getItem('geminiApiKey') || '';
+let apiKey = localStorage.getItem('claudeApiKey') || '';
 
 window.addEventListener('load', () => {
   const input = document.getElementById('apiKeyInput');
@@ -492,11 +491,13 @@ window.addEventListener('load', () => {
   input.addEventListener('keydown', (e) => { if (e.key === 'Enter') saveApiKey(); });
   updateApiDot();
   renderHistory();
+  const y = document.getElementById('year');
+  if (y) y.textContent = new Date().getFullYear();
 });
 
 function saveApiKey() {
   apiKey = document.getElementById('apiKeyInput').value.trim();
-  localStorage.setItem('geminiApiKey', apiKey);
+  localStorage.setItem('claudeApiKey', apiKey);
   updateApiDot();
   const status = document.getElementById('apiSaveStatus');
   status.textContent = apiKey ? '✓ сохранён' : 'очищен';
@@ -825,35 +826,54 @@ window.addEventListener('load', () => {
 });
 
 // ============================================================
-// TRANSLATE (Gemini)
+// TRANSLATE (Anthropic Claude)
 // ============================================================
 const LANG_NAMES = { SA: 'Sanskrit', TA: 'Tamil', EN: 'English', DE: 'German', RU: 'Russian' };
 
-async function geminiTranslate(text, fromLang, toLang) {
-  if (!apiKey) throw new Error('Введите Gemini API ключ в шапке страницы');
+function translatePrompt(text, fromLang, toLang) {
   const fromName = LANG_NAMES[fromLang] || fromLang;
   const toName = LANG_NAMES[toLang] || toLang;
-  const prompt = `Translate the following ${fromName} text to ${toName}. Return only the translation, no explanations.\n\n${text}`;
-  const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-lite:generateContent`;
-  const resp = await fetch(endpoint, {
+  return `Translate the following ${fromName} text to ${toName}. Return only the translation, no explanations.\n\n${text}`;
+}
+
+// Единая точка входа для перевода (Anthropic Claude).
+async function translate(text, fromLang, toLang) {
+  if (!apiKey) throw new Error('Введите API-ключ Claude в шапке страницы и нажмите «Сохранить»');
+  return claudeTranslate(text, fromLang, toLang);
+}
+
+async function claudeTranslate(text, fromLang, toLang) {
+  const prompt = translatePrompt(text, fromLang, toLang);
+  const resp = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'X-goog-api-key': apiKey },
-    body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
+    headers: {
+      'Content-Type': 'application/json',
+      'x-api-key': apiKey,
+      'anthropic-version': '2023-06-01',
+      // Разрешает прямой вызов из браузера (без бэкенда).
+      'anthropic-dangerous-direct-browser-access': 'true'
+    },
+    body: JSON.stringify({
+      model: 'claude-haiku-4-5',
+      max_tokens: 2000,
+      messages: [{ role: 'user', content: prompt }]
+    })
   });
   if (!resp.ok) {
     const err = await resp.json().catch(() => ({}));
     const msg = err.error?.message || ('HTTP ' + resp.status);
-    if (resp.status === 429) throw new Error('Превышен лимит запросов Gemini. Подождите минуту и попробуйте снова.');
-    if (resp.status === 400) throw new Error('Неверный запрос: ' + msg.slice(0, 120));
-    if (resp.status === 403) throw new Error('Неверный API ключ Gemini (403)');
-    throw new Error(msg.slice(0, 150));
+    if (resp.status === 429) throw new Error('Превышен лимит запросов Claude. Подождите и попробуйте снова.');
+    if (resp.status === 401) throw new Error('Неверный API ключ Claude (401)');
+    if (resp.status === 400) throw new Error('Неверный запрос Claude: ' + msg.slice(0, 160));
+    throw new Error(msg.slice(0, 180));
   }
   const data = await resp.json();
-  return data.candidates?.[0]?.content?.parts?.[0]?.text?.trim() || '(пустой ответ)';
+  const out = (data.content || []).filter(b => b.type === 'text').map(b => b.text).join('').trim();
+  return out || '(пустой ответ)';
 }
 
 async function doTranslate() {
-  if (!apiKey) { alert('Введите Gemini API ключ в шапке страницы и нажмите Сохранить'); return; }
+  if (!apiKey) { alert('Введите API ключ в шапке страницы и нажмите Сохранить'); return; }
   const text = document.getElementById('translateInput').value.trim();
   if (!text) return;
   const from = document.getElementById('translateFrom').value;
@@ -861,7 +881,7 @@ async function doTranslate() {
   const out = document.getElementById('translateOutput');
   out.innerHTML = 'Переводим... <span class="spinner"></span>';
   try {
-    const result = await geminiTranslate(text, from, to);
+    const result = await translate(text, from, to);
     out.textContent = result;
     addHistory('translate', text.slice(0,60), result.slice(0,60));
     document.getElementById('translateInfo').style.display = 'none';
@@ -902,12 +922,12 @@ async function doParallel() {
 
   if (apiKey) {
     try {
-      document.getElementById('parTranslation').textContent = await geminiTranslate(text, lang, to);
+      document.getElementById('parTranslation').textContent = await translate(text, lang, to);
     } catch(e) {
       document.getElementById('parTranslation').textContent = 'Ошибка: ' + e.message;
     }
   } else {
-    document.getElementById('parTranslation').textContent = 'Нет API ключа Gemini';
+    document.getElementById('parTranslation').textContent = 'Нет API ключа';
   }
 }
 
@@ -1333,23 +1353,23 @@ function copyText(id) {
   const el = document.getElementById(id);
   navigator.clipboard.writeText(el.textContent || el.innerText).then(() => {
     const orig = el.style.borderColor;
-    el.style.borderColor = 'var(--green)';
+    el.style.borderColor = 'var(--accent2)';
     setTimeout(() => el.style.borderColor = orig, 800);
   });
 }
 </script>
 
-<footer style="background:var(--surface);border-top:1px solid var(--border);margin-top:40px;padding:24px;text-align:center;font-size:0.8rem;color:var(--muted);line-height:1.8">
-  <div style="max-width:800px;margin:0 auto">
-    <div style="margin-bottom:10px;color:var(--text);font-size:0.85rem">
-      <strong style="color:var(--accent2)">Sanskrit &amp; Tamil Tools</strong> — независимый образовательный проект, созданный для изучения санскрита, тамильского языка и классических текстов Индии.
-    </div>
-    <div style="margin-bottom:12px">
-      🔒 <strong style="color:var(--text)">Конфиденциальность:</strong> транслитерация, словарь, грамматика, OCR и работа с файлами выполняются локально в вашем браузере. Никакие тексты, изображения и файлы не передаются разработчику и не сохраняются на стороне разработчика. Единственное исключение — машинный перевод: текст отправляется напрямую на серверы Google Gemini. API-ключ хранится только в вашем браузере (localStorage) и никуда не передаётся разработчику.
-    </div>
-    <div style="border-top:1px solid var(--border);padding-top:12px;color:var(--muted)">
-      © 2026 Светлана Кройцер. Все права защищены.
-    </div>
+<footer style="background:var(--surface);border-top:1px solid var(--border);margin-top:40px;padding:28px 24px;font-size:0.85rem;color:var(--muted);line-height:1.6">
+  <div style="max-width:720px;margin:0 auto">
+    <p style="margin:0 0 12px">
+      <strong style="color:var(--text)">О методике.</strong> Материал основан на классических санскритских и тамильских источниках. Транслитерация, словарь, грамматика, OCR и работа с файлами выполняются локально в вашем браузере. Машинный перевод отправляет текст напрямую на серверы Anthropic (Claude); API-ключ хранится только в вашем браузере (localStorage) и не передаётся разработчику. Результат носит справочно-просветительский характер.
+    </p>
+    <p style="margin:0 0 12px">
+      Использованы: Tesseract.js (Apache License 2.0); PDF.js (Mozilla, Apache License 2.0); шрифт Jaipur (Vic Fieger, Andrew Marcus).
+    </p>
+    <p style="margin:0;font-weight:700;color:var(--text)">
+      © <span id="year"></span> Светлана Кройцер · goroskop1008.ru
+    </p>
   </div>
 </footer>
 
