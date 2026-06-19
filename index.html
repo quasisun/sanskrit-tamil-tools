@@ -1315,7 +1315,8 @@ function renderOcrResult(text, tagLabel) {
         <button class="btn secondary small" onclick="copyText('ocrText')">Копировать</button>
       </div>
       <div class="result-box" id="ocrText">${safeText || 'Текст не найден. Попробуйте более резкий скан без наклона, с белым фоном и крупными буквами.'}</div>
-      <button class="btn secondary small" style="margin-top:8px" onclick="sendOcrToTranslit()">→ В транслитерацию</button>
+      <button class="btn secondary small" style="margin-top:8px" onclick="downloadText('ocrText','распознанный-текст')">Скачать .txt</button>
+      <button class="btn secondary small" style="margin-top:8px;margin-left:4px" onclick="sendOcrToTranslit()">→ В транслитерацию</button>
       <button class="btn secondary small" style="margin-top:8px;margin-left:4px" onclick="sendOcrToTranslate()">→ В перевод</button>
     </div>`;
 }
@@ -1453,6 +1454,27 @@ function copyText(id) {
     el.style.borderColor = 'var(--accent2)';
     setTimeout(() => el.style.borderColor = orig, 800);
   });
+}
+
+// Сохранить содержимое элемента в текстовый файл (скачивание в браузере).
+function downloadText(id, baseName) {
+  const el = document.getElementById(id);
+  const text = el ? (el.textContent || el.innerText || '') : '';
+  const d = new Date();
+  const stamp = d.getFullYear() + '-' +
+    String(d.getMonth() + 1).padStart(2, '0') + '-' +
+    String(d.getDate()).padStart(2, '0') + '_' +
+    String(d.getHours()).padStart(2, '0') +
+    String(d.getMinutes()).padStart(2, '0');
+  const blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = (baseName || 'text') + '-' + stamp + '.txt';
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 </script>
 
