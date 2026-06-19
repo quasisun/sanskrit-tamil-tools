@@ -425,7 +425,7 @@
 <!-- ====== OCR ====== -->
 <div id="tab-ocr" class="tab">
   <div class="card">
-    <h2>Распознавание текста с изображения (OCR)</h2>
+    <h2>Распознавание текста с изображения или PDF (OCR)</h2>
     <div class="btn-row">
       <select id="ocrLang">
         <option value="san">Санскрит (деванагари)</option>
@@ -435,9 +435,9 @@
       </select>
     </div>
     <div class="drop-zone" id="dropZone" onclick="document.getElementById('ocrFile').click()" ondragover="ocrDragOver(event)" ondrop="ocrDrop(event)">
-      <input type="file" id="ocrFile" accept="image/*" onchange="doOCR(this.files[0])">
-      <div style="margin-top:8px">Перетащите изображение или нажмите для выбора</div>
-      <div class="info">Лучше всего работает резкий скан или фото без наклона: тёмный текст, светлый фон, буквы крупные. Рукописи и декоративные шрифты Tesseract распознаёт плохо.</div>
+      <input type="file" id="ocrFile" accept="image/*,application/pdf,.pdf" onchange="doOCR(this.files[0])">
+      <div style="margin-top:8px">Перетащите изображение или PDF — либо нажмите для выбора</div>
+      <div class="info">Принимаются картинки и PDF (в т.ч. отсканированные). Каждая страница PDF распознаётся отдельно — для деванагари выберите язык «Санскрит». Лучше всего работает резкий скан без наклона: тёмный текст, светлый фон, крупные буквы. Многостраничные PDF обрабатываются по странице за раз и могут занять время. Рукописи и декоративные шрифты Tesseract распознаёт плохо.</div>
     </div>
     <div id="ocrProgress" style="display:none;margin-top:12px">
       <div style="color:var(--muted);margin-bottom:6px" id="ocrStatus">Инициализация...</div>
@@ -1164,6 +1164,9 @@ function ocrDrop(e) {
 
 async function doOCR(file) {
   if (!file) return;
+  const isPdf = /\.pdf$/i.test(file.name) || file.type === 'application/pdf';
+  if (isPdf) return doOcrPdf(file);
+
   const lang = document.getElementById('ocrLang').value;
   const prog = document.getElementById('ocrProgress');
   const status = document.getElementById('ocrStatus');
@@ -1194,22 +1197,124 @@ async function doOCR(file) {
     const { data: { text, confidence } } = await worker.recognize(image);
     await worker.terminate();
     prog.style.display = 'none';
-    const safeText = (text || '').replace(/</g,'&lt;');
-    res.innerHTML = `
-      <div class="card" style="margin:0">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
-          <span class="tag">Распознано (уверенность: ${confidence.toFixed(0)}%)</span>
-          <button class="btn secondary small" onclick="copyText('ocrText')">Копировать</button>
-        </div>
-        <div class="result-box" id="ocrText">${safeText || 'Текст не найден. Попробуйте более резкое фото, без наклона, с белым фоном и крупными буквами.'}</div>
-        <button class="btn secondary small" style="margin-top:8px" onclick="sendOcrToTranslit()">→ В транслитерацию</button>
-        <button class="btn secondary small" style="margin-top:8px;margin-left:4px" onclick="sendOcrToTranslate()">→ В перевод</button>
-      </div>`;
-    addHistory('ocr', file.name, text.slice(0,80));
+    renderOcrResult(text, 'Распознано (уверенность: ' + confidence.toFixed(0) + '%)');
+    addHistory('ocr', file.name, (text || '').slice(0,80));
   } catch(e) {
     prog.style.display = 'none';
-    res.innerHTML = '<div style="color:var(--accent)">Ошибка OCR: ' + e.message + '</div>';
+    res.innerHTML = '<div style="color:var(--accent2)">Ошибка OCR: ' + e.message + '</div>';
   }
+}
+
+// OCR прямо из PDF: каждая страница рендерится в картинку и распознаётся Tesseract.
+// Работает и для отсканированных PDF (без текстового слоя).
+async function doOcrPdf(file) {
+  const lang = document.getElementById('ocrLang').value;
+  const prog = document.getElementById('ocrProgress');
+  const status = document.getElementById('ocrStatus');
+  const bar = document.getElementById('ocrBar');
+  const res = document.getElementById('ocrResult');
+  prog.style.display = 'block';
+  res.innerHTML = '';
+  if (typeof pdfjsLib === 'undefined') {
+    prog.style.display = 'none';
+    res.innerHTML = '<div style="color:var(--accent2)">PDF.js не загружен — нельзя открыть PDF.</div>';
+    return;
+  }
+
+  let worker = null;
+  let cur = 0, total = 0;
+  try {
+    status.textContent = 'Чтение PDF...';
+    bar.style.width = '0%';
+    const buf = await file.arrayBuffer();
+    const pdf = await pdfjsLib.getDocument({ data: buf }).promise;
+    total = pdf.numPages;
+
+    worker = await Tesseract.createWorker(lang, 1, {
+      workerPath: 'sanskrit-tools-assets/worker.min.js',
+      langPath: 'sanskrit-tools-assets/',
+      gzip: true,
+      logger: m => {
+        if (m.status === 'recognizing text') {
+          status.textContent = `Страница ${cur} из ${total}: распознавание ${(m.progress*100).toFixed(0)}%`;
+        }
+      }
+    });
+    await worker.setParameters({
+      tessedit_pageseg_mode: '6',
+      preserve_interword_spaces: '1'
+    });
+
+    let full = '', confSum = 0, confN = 0;
+    for (let i = 1; i <= total; i++) {
+      cur = i;
+      status.textContent = `Страница ${i} из ${total}: рендеринг...`;
+      const blob = await renderPdfPageToBlob(pdf, i);
+      const { data: { text, confidence } } = await worker.recognize(blob);
+      bar.style.width = Math.round(i / total * 100) + '%';
+      full += `--- Страница ${i} ---\n` + (text || '').trim() + '\n\n';
+      if (typeof confidence === 'number') { confSum += confidence; confN++; }
+    }
+    await worker.terminate();
+    worker = null;
+    prog.style.display = 'none';
+    const avg = confN ? Math.round(confSum / confN) : '—';
+    renderOcrResult(full.trim(), `Распознано страниц: ${total} (средняя уверенность: ${avg}%)`);
+    addHistory('ocr', file.name, full.replace(/--- .*? ---\n/g, '').trim().slice(0,80));
+  } catch(e) {
+    if (worker) { try { await worker.terminate(); } catch(_) {} }
+    prog.style.display = 'none';
+    res.innerHTML = '<div style="color:var(--accent2)">Ошибка OCR PDF: ' + e.message + '</div>';
+  }
+}
+
+// Отрисовка одной страницы PDF в подготовленный к OCR PNG-блоб.
+async function renderPdfPageToBlob(pdf, pageNum) {
+  const page = await pdf.getPage(pageNum);
+  const base = page.getViewport({ scale: 1 });
+  // Целимся в ~2200px по большей стороне — баланс точности OCR и скорости.
+  const scale = Math.min(3.5, Math.max(1.5, 2200 / Math.max(base.width, base.height)));
+  const viewport = page.getViewport({ scale });
+  const canvas = document.createElement('canvas');
+  canvas.width = Math.round(viewport.width);
+  canvas.height = Math.round(viewport.height);
+  const ctx = canvas.getContext('2d', { willReadFrequently: true });
+  ctx.fillStyle = '#fff';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  await page.render({ canvasContext: ctx, viewport }).promise;
+  binarizeCanvas(canvas);
+  return await new Promise((resolve, reject) =>
+    canvas.toBlob(b => b ? resolve(b) : reject(new Error('Не удалось отрисовать страницу')), 'image/png'));
+}
+
+// Чёрно-белая бинаризация: усиливает контраст текста перед распознаванием.
+function binarizeCanvas(canvas) {
+  const ctx = canvas.getContext('2d', { willReadFrequently: true });
+  const data = ctx.getImageData(0, 0, canvas.width, canvas.height);
+  const d = data.data;
+  for (let i = 0; i < d.length; i += 4) {
+    const gray = d[i] * 0.299 + d[i + 1] * 0.587 + d[i + 2] * 0.114;
+    const boosted = gray < 170 ? Math.max(0, gray - 35) : Math.min(255, gray + 35);
+    const bw = boosted < 150 ? 0 : 255;
+    d[i] = bw; d[i + 1] = bw; d[i + 2] = bw; d[i + 3] = 255;
+  }
+  ctx.putImageData(data, 0, 0);
+}
+
+// Карточка результата OCR (общая для картинок и PDF).
+function renderOcrResult(text, tagLabel) {
+  const res = document.getElementById('ocrResult');
+  const safeText = (text || '').replace(/</g,'&lt;');
+  res.innerHTML = `
+    <div class="card" style="margin:0">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+        <span class="tag">${tagLabel}</span>
+        <button class="btn secondary small" onclick="copyText('ocrText')">Копировать</button>
+      </div>
+      <div class="result-box" id="ocrText">${safeText || 'Текст не найден. Попробуйте более резкий скан без наклона, с белым фоном и крупными буквами.'}</div>
+      <button class="btn secondary small" style="margin-top:8px" onclick="sendOcrToTranslit()">→ В транслитерацию</button>
+      <button class="btn secondary small" style="margin-top:8px;margin-left:4px" onclick="sendOcrToTranslate()">→ В перевод</button>
+    </div>`;
 }
 
 function prepareImageForOCR(file) {
@@ -1226,18 +1331,7 @@ function prepareImageForOCR(file) {
       ctx.imageSmoothingEnabled = true;
       ctx.imageSmoothingQuality = 'high';
       ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-
-      const data = ctx.getImageData(0, 0, canvas.width, canvas.height);
-      for (let i = 0; i < data.data.length; i += 4) {
-        const gray = data.data[i] * 0.299 + data.data[i + 1] * 0.587 + data.data[i + 2] * 0.114;
-        const boosted = gray < 170 ? Math.max(0, gray - 35) : Math.min(255, gray + 35);
-        const bw = boosted < 150 ? 0 : 255;
-        data.data[i] = bw;
-        data.data[i + 1] = bw;
-        data.data[i + 2] = bw;
-        data.data[i + 3] = 255;
-      }
-      ctx.putImageData(data, 0, 0);
+      binarizeCanvas(canvas);
       canvas.toBlob(blob => blob ? resolve(blob) : reject(new Error('Не удалось подготовить изображение')), 'image/png');
     };
     img.onerror = () => reject(new Error('Не удалось прочитать изображение'));
