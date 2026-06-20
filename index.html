@@ -271,6 +271,7 @@
 <nav>
   <button class="active" onclick="showTab('translit')">Транслитерация</button>
   <button onclick="showTab('translate')">Перевод</button>
+  <button onclick="showTab('smart')">Умная обработка</button>
   <button onclick="showTab('parallel')">Параллельный режим</button>
   <button onclick="showTab('dictionary')">Словарь MW</button>
   <button onclick="showTab('grammar')">Грамматика</button>
@@ -343,6 +344,23 @@
       </div>
     </div>
     <div class="info" id="translateInfo">Для перевода введите API-ключ Claude в шапке страницы и нажмите «Сохранить». Получить ключ: <a href="https://console.anthropic.com/settings/keys" target="_blank" style="color:var(--accent2)">console.anthropic.com</a> (требуется пополнение баланса).</div>
+  </div>
+</div>
+
+<!-- ====== SMART PROCESS ====== -->
+<div id="tab-smart" class="tab">
+  <div class="card">
+    <h2>Умная обработка (деванагари → IAST + русский)</h2>
+    <div class="btn-row">
+      <button class="btn" id="smartBtn" onclick="doSmartProcess()">Обработать</button>
+      <button class="btn secondary small" onclick="document.getElementById('smartFile').click()">Загрузить файл (TXT/PDF)</button>
+      <button class="btn secondary small" onclick="document.getElementById('smartInput').value='';document.getElementById('smartResult').innerHTML=''">Очистить</button>
+      <input type="file" id="smartFile" accept=".txt,.md,.pdf,application/pdf" style="display:none" onchange="loadSmartFile(this.files[0])">
+    </div>
+    <label class="small">Исходный текст (деванагари + английский перевод)</label>
+    <textarea id="smartInput" rows="8" placeholder="Вставьте текст, загрузите файл или отправьте сюда результат из OCR…"></textarea>
+    <div class="info" id="smartInfo">На выходе: транслитерация IAST + перевод на русский (в исходном порядке), исправление ошибок в именах и комментарии к терминам. Обработка через Claude Sonnet 4.6 — нужен API-ключ Claude (вкладка в шапке). Для отсканированных PDF сначала распознайте их во вкладке OCR.</div>
+    <div id="smartResult" style="margin-top:14px"></div>
   </div>
 </div>
 
@@ -854,8 +872,8 @@ async function translate(text, fromLang, toLang) {
   return claudeTranslate(text, fromLang, toLang);
 }
 
-async function claudeTranslate(text, fromLang, toLang) {
-  const prompt = translatePrompt(text, fromLang, toLang);
+// Общий вызов Claude из браузера. Возвращает { text, truncated }.
+async function callClaude(prompt, { model = 'claude-haiku-4-5', maxTokens = 2000 } = {}) {
   const resp = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
     headers: {
@@ -866,8 +884,8 @@ async function claudeTranslate(text, fromLang, toLang) {
       'anthropic-dangerous-direct-browser-access': 'true'
     },
     body: JSON.stringify({
-      model: 'claude-haiku-4-5',
-      max_tokens: 2000,
+      model: model,
+      max_tokens: maxTokens,
       messages: [{ role: 'user', content: prompt }]
     })
   });
@@ -881,7 +899,92 @@ async function claudeTranslate(text, fromLang, toLang) {
   }
   const data = await resp.json();
   const out = (data.content || []).filter(b => b.type === 'text').map(b => b.text).join('').trim();
-  return out || '(пустой ответ)';
+  return { text: out || '(пустой ответ)', truncated: data.stop_reason === 'max_tokens' };
+}
+
+async function claudeTranslate(text, fromLang, toLang) {
+  const { text: out } = await callClaude(translatePrompt(text, fromLang, toLang), { model: 'claude-haiku-4-5', maxTokens: 2000 });
+  return out;
+}
+
+// ============================================================
+// SMART PROCESS (деванагари → IAST + русский + комментарии)
+// ============================================================
+function smartPrompt(text) {
+  return `Ты — учёный-санскритолог. Ниже текст с фрагментами на деванагари и их английским переводом (возможны ошибки OCR).
+
+Сделай следующее, СОХРАНЯЯ ИСХОДНЫЙ ПОРЯДОК фрагментов:
+1. Для каждого фрагмента деванагари дай транслитерацию IAST.
+2. Дай перевод СМЫСЛА на русский язык (английский в исходнике используй только как опору).
+3. Молча исправляй ошибки OCR в именах собственных (божества, люди, места) и санскритских терминах — выводи правильные формы.
+4. В конце добавь раздел «— Комментарии к терминам —» с краткими пояснениями ключевых санскритских терминов из текста.
+
+Формат для каждого фрагмента:
+[N] IAST: …
+    Перевод: …
+
+Отвечай только результатом, без вступлений. Текст:
+
+${text}`;
+}
+
+async function claudeProcess(text) {
+  return callClaude(smartPrompt(text), { model: 'claude-sonnet-4-6', maxTokens: 8000 });
+}
+
+async function doSmartProcess() {
+  if (!apiKey) { alert('Введите API-ключ Claude в шапке страницы и нажмите Сохранить'); return; }
+  const text = document.getElementById('smartInput').value.trim();
+  if (!text) { alert('Вставьте или загрузите текст для обработки'); return; }
+  const res = document.getElementById('smartResult');
+  res.innerHTML = 'Обрабатываем через Claude Sonnet 4.6… <span class="spinner"></span>';
+  try {
+    const { text: out, truncated } = await claudeProcess(text);
+    const safe = out.replace(/</g, '&lt;');
+    res.innerHTML = `
+      <div class="card" style="margin:0">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+          <span class="tag">Результат${truncated ? ' · обрезан, обработайте текст частями' : ''}</span>
+          <button class="btn secondary small" onclick="copyText('smartText')">Копировать</button>
+        </div>
+        <div class="result-box" id="smartText" style="max-height:520px;overflow-y:auto">${safe}</div>
+        <button class="btn secondary small" style="margin-top:8px" onclick="downloadText('smartText','умная-обработка')">Скачать .txt</button>
+      </div>`;
+    addHistory('smart', text.slice(0, 60), out.slice(0, 60));
+  } catch(e) {
+    res.innerHTML = '<div style="color:var(--accent2)">Ошибка: ' + e.message + '</div>';
+  }
+}
+
+// Загрузка файла во вкладку умной обработки (TXT/MD напрямую, из PDF — текстовый слой).
+async function loadSmartFile(file) {
+  if (!file) return;
+  const ext = file.name.split('.').pop().toLowerCase();
+  const ta = document.getElementById('smartInput');
+  if (ext === 'txt' || ext === 'md') {
+    ta.value = await file.text();
+  } else if (ext === 'pdf') {
+    if (typeof pdfjsLib === 'undefined') { alert('PDF.js не загружен'); return; }
+    ta.value = 'Извлекаем текст из PDF…';
+    try {
+      const buf = await file.arrayBuffer();
+      const pdf = await pdfjsLib.getDocument({ data: buf }).promise;
+      let full = '';
+      for (let i = 1; i <= pdf.numPages; i++) {
+        const page = await pdf.getPage(i);
+        const content = await page.getTextContent();
+        full += content.items.map(s => s.str).join(' ') + '\n';
+      }
+      ta.value = full.trim() || '(в PDF нет текстового слоя — распознайте его во вкладке OCR)';
+    } catch(e) { ta.value = ''; alert('Ошибка PDF: ' + e.message); }
+  } else {
+    alert('Формат не поддерживается. Используйте TXT, MD или PDF.');
+  }
+}
+
+function sendOcrToSmart() {
+  document.getElementById('smartInput').value = document.getElementById('ocrText').textContent;
+  showTabDirect('smart');
 }
 
 async function doTranslate() {
@@ -1426,6 +1529,7 @@ function renderOcrResult(text, tagLabel) {
       </div>
       <div class="result-box" id="ocrText">${safeText || 'Текст не найден. Попробуйте более резкий скан без наклона, с белым фоном и крупными буквами.'}</div>
       <button class="btn secondary small" style="margin-top:8px" onclick="downloadText('ocrText','распознанный-текст')">Скачать .txt</button>
+      <button class="btn secondary small" style="margin-top:8px;margin-left:4px" onclick="sendOcrToSmart()">→ Умная обработка</button>
       <button class="btn secondary small" style="margin-top:8px;margin-left:4px" onclick="sendOcrToTranslit()">→ В транслитерацию</button>
       <button class="btn secondary small" style="margin-top:8px;margin-left:4px" onclick="sendOcrToTranslate()">→ В перевод</button>
     </div>`;
@@ -1467,7 +1571,7 @@ function showTabDirect(name) {
   document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
   document.querySelectorAll('nav button').forEach(b => b.classList.remove('active'));
   document.getElementById('tab-' + name).classList.add('active');
-  const idx = {translit:0,translate:1,parallel:2,dictionary:3,grammar:4,ocr:5,files:6,history:7};
+  const idx = {translit:0,translate:1,smart:2,parallel:3,dictionary:4,grammar:5,ocr:6,files:7,history:8};
   document.querySelectorAll('nav button')[idx[name]].classList.add('active');
 }
 
@@ -1536,7 +1640,7 @@ function renderHistory() {
   const hist = JSON.parse(localStorage.getItem('hist') || '[]');
   const list = document.getElementById('histList');
   if (!hist.length) { list.innerHTML = '<div class="info">История пуста</div>'; return; }
-  const labels = { translit: 'Транслит', translate: 'Перевод', ocr: 'OCR' };
+  const labels = { translit: 'Транслит', translate: 'Перевод', ocr: 'OCR', smart: 'Обработка' };
   list.innerHTML = hist.map(h => `
     <div class="hist-item">
       <span class="tag">${labels[h.type] || h.type}</span>
