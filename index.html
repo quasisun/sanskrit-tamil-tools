@@ -403,10 +403,11 @@
 <!-- ====== GRAMMAR ====== -->
 <div id="tab-grammar" class="tab">
   <div class="card">
-    <h2>Грамматические формы (Sanskrit)</h2>
+    <h2>Грамматические формы (санскрит)</h2>
     <div class="btn-row">
-      <input type="text" id="gramInput" placeholder="Основа слова в IAST (напр: deva, rāja, nāman)" style="flex:1;background:var(--bg);border:1px solid var(--border);color:var(--text);padding:8px 12px;border-radius:7px;font-size:1rem" onkeydown="if(event.key==='Enter')showGrammar()">
+      <input type="text" id="gramInput" placeholder="Слово в IAST: deva, phala, senā, agni, guru, rājan" style="flex:1;background:var(--bg);border:1px solid var(--border);color:var(--text);padding:8px 12px;border-radius:7px;font-size:1rem" onkeydown="if(event.key==='Enter')showGrammar()">
       <select id="gramType">
+        <option value="auto">Авто-определение</option>
         <option value="a-m">a-основа, муж.</option>
         <option value="a-n">a-основа, ср.</option>
         <option value="aa-f">ā-основа, жен.</option>
@@ -419,6 +420,14 @@
       <button class="btn" onclick="showGrammar()">Показать</button>
     </div>
     <div id="gramResult"></div>
+  </div>
+  <div class="card">
+    <h2>Грамматические формы (тамильский)</h2>
+    <div class="btn-row">
+      <input type="text" id="tamGramInput" placeholder="Тамильское слово: தர்மம், ஞானம், வீடு" style="flex:1;background:var(--bg);border:1px solid var(--border);color:var(--text);padding:8px 12px;border-radius:7px;font-size:1rem" onkeydown="if(event.key==='Enter')showTamilGrammar()">
+      <button class="btn" onclick="showTamilGrammar()">Показать</button>
+    </div>
+    <div id="tamGramResult"></div>
   </div>
 </div>
 
@@ -1110,47 +1119,148 @@ const VERB_TABLES = {
   }
 };
 
+const TYPE_LABEL_SHORT = {
+  'a-m': 'a-основа, муж.', 'a-n': 'a-основа, ср.', 'aa-f': 'ā-основа, жен.',
+  'i-m': 'i-основа, муж.', 'u-m': 'u-основа, муж.', 'an-m': 'an-основа, муж.'
+};
+
+// Определение класса основы по окончанию словарной формы.
+function detectDeclType(word) {
+  const w = word.normalize('NFC');
+  if (/an$/.test(w)) return 'an-m';   // rājan, nāman, ātman
+  if (/ā$/.test(w))  return 'aa-f';   // māyā, senā
+  if (/[iī]$/.test(w)) return 'i-m';  // agni
+  if (/[uū]$/.test(w)) return 'u-m';  // guru
+  return 'a-m';                        // deva, phala (-a)
+}
+
+// Снятие конечной гласной → чистая основа (окончания уже содержат соединительную гласную).
+function bareStem(word, type) {
+  const w = word.normalize('NFC');
+  if (type === 'an-m') return w.replace(/an$/, '');
+  if (type === 'aa-f') return w.replace(/ā$/, '');
+  if (type === 'i-m')  return w.replace(/[iī]$/, '');
+  if (type === 'u-m')  return w.replace(/[uū]$/, '');
+  return w.replace(/a$/, ''); // a-m / a-n
+}
+
 function showGrammar() {
-  const base = document.getElementById('gramInput').value.trim() || '—';
-  const type = document.getElementById('gramType').value;
+  const raw = document.getElementById('gramInput').value.trim();
+  const chosen = document.getElementById('gramType').value;
   const res = document.getElementById('gramResult');
 
-  if (type.startsWith('verb')) {
-    const tbl = VERB_TABLES[type];
+  if (chosen.startsWith('verb')) {
+    const tbl = VERB_TABLES[chosen];
     res.innerHTML = `
       <div class="card" style="margin-top:10px">
-        <h2>${tbl.label} <em style="color:var(--muted);font-size:0.85rem">(введено: ${base})</em></h2>
+        <h2>${tbl.label} <em style="color:var(--muted);font-size:0.85rem">${raw ? '(введено: '+raw+')' : ''}</em></h2>
         <table class="grammar-table">
           <tr>${tbl.headers.map(h=>`<th>${h}</th>`).join('')}</tr>
-          ${tbl.rows.map(r=>`<tr>${r.map((c,i)=>`<td>${c}</td>`).join('')}</tr>`).join('')}
+          ${tbl.rows.map(r=>`<tr>${r.map((c)=>`<td>${c}</td>`).join('')}</tr>`).join('')}
         </table>
         <div class="info" style="margin-top:8px">Подставьте вашу основу: замените bhav-/labh- на основу вашего глагола + окончания</div>
       </div>`;
     return;
   }
 
+  // Авто: определяем класс по окончанию; иначе берём выбранный вручную.
+  const type = (chosen === 'auto') ? (raw ? detectDeclType(raw) : 'a-m') : chosen;
   const decl = DECLENSIONS[type];
   if (!decl) return;
 
-  const makeForms = (endings, stem) => endings.map(e => stem + e);
-  // For display show endings; if user typed a stem, show full forms
-  const showForms = base !== '—';
+  const showForms = raw !== '';
+  const stem = showForms ? bareStem(raw, type) : '';
+  const detected = (chosen === 'auto') ? ' · определено автоматически' : '';
+  const head = showForms
+    ? `${TYPE_LABEL_SHORT[type]} <em style="color:var(--muted);font-size:0.85rem">(основа: ${stem}-${detected})</em>`
+    : decl.label;
 
   res.innerHTML = `
     <div class="card" style="margin-top:10px">
-      <h2>${decl.label} <em style="color:var(--muted);font-size:0.85rem">${showForms ? '(основа: '+base+')' : ''}</em></h2>
+      <h2>${head}</h2>
       <table class="grammar-table">
         <tr><th>Падеж</th><th>Ед.ч.</th><th>Дв.ч.</th><th>Мн.ч.</th></tr>
         ${CASES_RU.map((c,i) => `
           <tr>
             <td><strong>${c}</strong> <span style="color:var(--muted);font-size:0.78rem">${CASES_SA[i]}</span></td>
-            <td class="iast">${showForms ? base+decl.sg[i] : '-'+decl.sg[i]}</td>
-            <td class="iast">${showForms ? base+decl.du[i] : '-'+decl.du[i]}</td>
-            <td class="iast">${showForms ? base+decl.pl[i] : '-'+decl.pl[i]}</td>
+            <td class="iast">${showForms ? stem+decl.sg[i] : '-'+decl.sg[i]}</td>
+            <td class="iast">${showForms ? stem+decl.du[i] : '-'+decl.du[i]}</td>
+            <td class="iast">${showForms ? stem+decl.pl[i] : '-'+decl.pl[i]}</td>
           </tr>
         `).join('')}
       </table>
-      <div class="info" style="margin-top:8px">Примеры: a-m: dev(a), kṛṣṇ(a) | ā-f: māy(ā), śakt(ī) | i-m: agn(i) | u-m: gur(u) | an-m: rāj(an)</div>
+      <div class="info" style="margin-top:8px">Класс определяется по окончанию: -ā → жен.; -i / -u / -a → по умолчанию муж.; -an → an-основа. Для среднего рода выберите «a-основа, ср.» вручную. an-основу вводите с -an (rājan, nāman).</div>
+    </div>`;
+}
+
+// ============================================================
+// GRAMMAR — Tamil (падежи)
+// ============================================================
+const TAM_CASES = [
+  ['Им. (эжуваи)', 'Nominative'],
+  ['Вин. (ай)', 'Accusative'],
+  ['Твор. (ал)', 'Instrumental'],
+  ['Дат. (ку)', 'Dative'],
+  ['Исх. (ил ирунду)', 'Ablative'],
+  ['Род. (ин)', 'Genitive'],
+  ['Мест. (ил)', 'Locative'],
+  ['Зв. (вили)', 'Vocative']
+];
+
+// Карта: независимая гласная → огласовка (знак).
+const TAM_VOWEL_SIGN = { 'அ':'', 'ஆ':'ா', 'இ':'ி', 'ஈ':'ீ', 'உ':'ு', 'ஊ':'ூ', 'எ':'ெ', 'ஏ':'ே', 'ஐ':'ை', 'ஒ':'ொ', 'ஓ':'ோ' };
+const TAM_FRONT_LAST = new Set(['ி', 'ீ', 'ெ', 'ே', 'ை', 'இ', 'ஈ', 'எ', 'ஏ', 'ஐ']);
+
+function tamGlide(word) {
+  return TAM_FRONT_LAST.has(word[word.length - 1]) ? 'ய' : 'வ';
+}
+
+// Приклейка суффикса с простейшим сандхи: глайд (ய/வ) перед гласным суффиксом.
+function tamAttach(word, suffix) {
+  const first = suffix[0];
+  if (Object.prototype.hasOwnProperty.call(TAM_VOWEL_SIGN, first)) {
+    const sign = TAM_VOWEL_SIGN[first];
+    const rest = suffix.slice(1);
+    if (word.endsWith('்')) return word.slice(0, -1) + sign + rest;  // согласный + огласовка
+    return word + tamGlide(word) + sign + rest;                       // вставка глайда после гласной
+  }
+  return word + suffix;
+}
+
+// Слова на -ம் склоняются точно (косвенная основа -த்த்); прочие — приблизительно.
+function tamilDecline(word) {
+  const w = word.normalize('NFC');
+  if (/ம்$/.test(w)) {
+    const r = w.replace(/ம்$/, '');
+    return { regular: true, forms: [
+      w, r + 'த்தை', r + 'த்தால்', r + 'த்துக்கு', r + 'த்திலிருந்து', r + 'த்தின்', r + 'த்தில்', r + 'மே'
+    ] };
+  }
+  const suf = ['', 'ஐ', 'ஆல்', 'க்கு', 'இலிருந்து', 'இன்', 'இல்', 'ஏ'];
+  return { regular: false, forms: suf.map((s, i) => i === 0 ? w : tamAttach(w, s)) };
+}
+
+function showTamilGrammar() {
+  const word = document.getElementById('tamGramInput').value.trim();
+  const res = document.getElementById('tamGramResult');
+  if (!word) { res.innerHTML = '<div class="info">Введите тамильское слово (тамильским шрифтом).</div>'; return; }
+  const { regular, forms } = tamilDecline(word);
+  const note = regular
+    ? 'Слово на -ம்: формы построены по регулярному образцу (மரம் → மரத்தை, மரத்தால்…). Родительный также может быть на -உடைய.'
+    : 'Нестандартное окончание — формы <strong>приблизительные</strong>, без учёта тамильского сандхи. Сверяйтесь со словарём.';
+  res.innerHTML = `
+    <div class="card" style="margin-top:10px">
+      <h2>Падежи: <span style="font-family:'Noto Sans Tamil',serif">${word}</span></h2>
+      <table class="grammar-table">
+        <tr><th>Падеж</th><th>Тамильский</th><th>Латиница</th></tr>
+        ${TAM_CASES.map((c,i)=>`
+          <tr>
+            <td><strong>${c[0]}</strong> <span style="color:var(--muted);font-size:0.78rem">${c[1]}</span></td>
+            <td style="font-family:'Noto Sans Tamil',serif;font-size:1.05rem">${forms[i]}</td>
+            <td class="iast">${tamToLatin(forms[i])}</td>
+          </tr>`).join('')}
+      </table>
+      <div class="info" style="margin-top:8px">${note}</div>
     </div>`;
 }
 
