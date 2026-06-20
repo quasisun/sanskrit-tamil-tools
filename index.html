@@ -43,7 +43,13 @@
     display: flex;
     align-items: center;
     gap: 8px;
+    flex-wrap: wrap;
   }
+  .api-help { width: 100%; color: #fff; font-size: 0.8rem; margin-top: 6px; }
+  .api-help summary { cursor: pointer; opacity: 0.92; }
+  .api-help ol { margin: 6px 0 0 18px; line-height: 1.55; }
+  .api-help a { color: #fff; text-decoration: underline; }
+  .api-help code { background: rgba(255,255,255,.2); padding: 0 4px; border-radius: 3px; }
   .api-bar input {
     background: var(--bg);
     border: 1px solid var(--border);
@@ -263,9 +269,23 @@
     <span id="apiDot" class="api-dot"></span>
     <label class="small" id="apiKeyLabel" style="margin:0;color:rgba(255,255,255,.92)">Claude API:</label>
     <input type="password" id="apiKeyInput" placeholder="вставьте ключ Claude (sk-ant-…)">
+    <select id="modelSelect" title="Модель Claude">
+      <option value="claude-haiku-4-5">Haiku 4.5 · дешевле</option>
+      <option value="claude-sonnet-4-6">Sonnet 4.6 · баланс</option>
+      <option value="claude-opus-4-8">Opus 4.8 · максимум</option>
+    </select>
     <button class="btn small" id="saveApiKeyBtn" type="button">Сохранить</button>
     <span id="apiSaveStatus" class="small" style="color:#fff"></span>
   </div>
+  <details class="api-help">
+    <summary>Как получить ключ Claude?</summary>
+    <ol>
+      <li>Откройте <a href="https://console.anthropic.com" target="_blank">console.anthropic.com</a> и зарегистрируйтесь.</li>
+      <li>Пополните баланс в разделе <strong>Billing</strong> (бесплатного лимита нет, минимум ≈ $5).</li>
+      <li>В разделе <strong>API keys</strong> нажмите <strong>Create Key</strong> и скопируйте ключ вида <code>sk-ant-…</code>.</li>
+      <li>Вставьте ключ в поле выше и нажмите «Сохранить».</li>
+    </ol>
+  </details>
 </header>
 
 <nav>
@@ -359,7 +379,7 @@
     </div>
     <label class="small">Исходный текст (деванагари + английский перевод)</label>
     <textarea id="smartInput" rows="8" placeholder="Вставьте текст, загрузите файл или отправьте сюда результат из OCR…"></textarea>
-    <div class="info" id="smartInfo">На выходе: транслитерация IAST + перевод на русский (в исходном порядке), исправление ошибок в именах и комментарии к терминам. Обработка через Claude Sonnet 4.6 — нужен API-ключ Claude (вкладка в шапке). Для отсканированных PDF сначала распознайте их во вкладке OCR.</div>
+    <div class="info" id="smartInfo">На выходе: транслитерация IAST + перевод на русский (в исходном порядке), исправление ошибок в именах и комментарии к терминам. Модель выбирается в шапке (для разбора рекомендуется Sonnet 4.6 или Opus 4.8). Нужен API-ключ Claude. Для отсканированных PDF сначала распознайте их во вкладке OCR.</div>
     <div id="smartResult" style="margin-top:14px"></div>
   </div>
 </div>
@@ -512,6 +532,7 @@ if(typeof pdfjsLib !== 'undefined') pdfjsLib.GlobalWorkerOptions.workerSrc = 'sa
 // API KEY (Anthropic Claude)
 // ============================================================
 let apiKey = localStorage.getItem('claudeApiKey') || '';
+let claudeModel = localStorage.getItem('claudeModel') || 'claude-sonnet-4-6';
 
 window.addEventListener('load', () => {
   const input = document.getElementById('apiKeyInput');
@@ -519,6 +540,14 @@ window.addEventListener('load', () => {
   if (apiKey) input.value = apiKey;
   saveBtn.addEventListener('click', saveApiKey);
   input.addEventListener('keydown', (e) => { if (e.key === 'Enter') saveApiKey(); });
+  const ms = document.getElementById('modelSelect');
+  if (ms) {
+    ms.value = claudeModel;
+    ms.addEventListener('change', () => {
+      claudeModel = ms.value;
+      localStorage.setItem('claudeModel', claudeModel);
+    });
+  }
   updateApiDot();
   renderHistory();
   const y = document.getElementById('year');
@@ -873,7 +902,7 @@ async function translate(text, fromLang, toLang) {
 }
 
 // Общий вызов Claude из браузера. Возвращает { text, truncated }.
-async function callClaude(prompt, { model = 'claude-haiku-4-5', maxTokens = 2000 } = {}) {
+async function callClaude(prompt, { model = claudeModel, maxTokens = 2000 } = {}) {
   const resp = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
     headers: {
@@ -903,7 +932,7 @@ async function callClaude(prompt, { model = 'claude-haiku-4-5', maxTokens = 2000
 }
 
 async function claudeTranslate(text, fromLang, toLang) {
-  const { text: out } = await callClaude(translatePrompt(text, fromLang, toLang), { model: 'claude-haiku-4-5', maxTokens: 2000 });
+  const { text: out } = await callClaude(translatePrompt(text, fromLang, toLang), { maxTokens: 2000 });
   return out;
 }
 
@@ -929,7 +958,7 @@ ${text}`;
 }
 
 async function claudeProcess(text) {
-  return callClaude(smartPrompt(text), { model: 'claude-sonnet-4-6', maxTokens: 8000 });
+  return callClaude(smartPrompt(text), { maxTokens: 8000 });
 }
 
 async function doSmartProcess() {
@@ -937,7 +966,7 @@ async function doSmartProcess() {
   const text = document.getElementById('smartInput').value.trim();
   if (!text) { alert('Вставьте или загрузите текст для обработки'); return; }
   const res = document.getElementById('smartResult');
-  res.innerHTML = 'Обрабатываем через Claude Sonnet 4.6… <span class="spinner"></span>';
+  res.innerHTML = 'Обрабатываем через Claude… <span class="spinner"></span>';
   try {
     const { text: out, truncated } = await claudeProcess(text);
     const safe = out.replace(/</g, '&lt;');
