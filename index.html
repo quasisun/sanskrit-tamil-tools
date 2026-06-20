@@ -50,6 +50,9 @@
   .api-help ol { margin: 6px 0 0 18px; line-height: 1.55; }
   .api-help a { color: #fff; text-decoration: underline; }
   .api-help code { background: rgba(255,255,255,.2); padding: 0 4px; border-radius: 3px; }
+  .api-note { width: 100%; color: rgba(255,255,255,.9); font-size: 0.78rem; margin-top: 6px; line-height: 1.5; }
+  .api-check { display: inline-flex; align-items: center; gap: 6px; color: #fff; cursor: pointer; }
+  .api-check input { width: auto; min-height: 0; margin: 0; }
   .api-bar input {
     background: var(--bg);
     border: 1px solid var(--border);
@@ -275,7 +278,12 @@
       <option value="claude-opus-4-8">Opus 4.8 · максимум</option>
     </select>
     <button class="btn small" id="saveApiKeyBtn" type="button">Сохранить</button>
+    <button class="btn small secondary" id="deleteApiKeyBtn" type="button">Удалить ключ</button>
     <span id="apiSaveStatus" class="small" style="color:#fff"></span>
+  </div>
+  <div class="api-note">
+    <label class="api-check"><input type="checkbox" id="noSaveKey"> не сохранять ключ в браузере (только на текущую сессию)</label>
+    <span style="opacity:.9"> · Совет: используйте ключ с лимитом расходов и не вводите его на чужом/общем компьютере.</span>
   </div>
   <details class="api-help">
     <summary>Как получить ключ Claude?</summary>
@@ -540,6 +548,18 @@ window.addEventListener('load', () => {
   if (apiKey) input.value = apiKey;
   saveBtn.addEventListener('click', saveApiKey);
   input.addEventListener('keydown', (e) => { if (e.key === 'Enter') saveApiKey(); });
+  document.getElementById('deleteApiKeyBtn').addEventListener('click', deleteApiKey);
+  const noSaveBox = document.getElementById('noSaveKey');
+  noSaveBox.checked = localStorage.getItem('claudeNoSave') === '1';
+  noSaveBox.addEventListener('change', () => {
+    if (noSaveBox.checked) {
+      localStorage.setItem('claudeNoSave', '1');
+      localStorage.removeItem('claudeApiKey');   // не хранить: убрать из браузера, оставить в памяти на сессию
+    } else {
+      localStorage.removeItem('claudeNoSave');
+      if (apiKey) localStorage.setItem('claudeApiKey', apiKey);
+    }
+  });
   const ms = document.getElementById('modelSelect');
   if (ms) {
     ms.value = claudeModel;
@@ -556,11 +576,26 @@ window.addEventListener('load', () => {
 
 function saveApiKey() {
   apiKey = document.getElementById('apiKeyInput').value.trim();
-  localStorage.setItem('claudeApiKey', apiKey);
+  const noSave = document.getElementById('noSaveKey').checked;
+  if (noSave) {
+    localStorage.removeItem('claudeApiKey');   // ключ остаётся только в памяти страницы
+  } else {
+    localStorage.setItem('claudeApiKey', apiKey);
+  }
   updateApiDot();
   const status = document.getElementById('apiSaveStatus');
-  status.textContent = apiKey ? '✓ сохранён' : 'очищен';
-  setTimeout(() => status.textContent = '', 2000);
+  status.textContent = apiKey ? (noSave ? '✓ принят (на сессию)' : '✓ сохранён') : 'очищен';
+  setTimeout(() => status.textContent = '', 2500);
+}
+
+function deleteApiKey() {
+  apiKey = '';
+  document.getElementById('apiKeyInput').value = '';
+  localStorage.removeItem('claudeApiKey');
+  updateApiDot();
+  const status = document.getElementById('apiSaveStatus');
+  status.textContent = 'ключ удалён';
+  setTimeout(() => status.textContent = '', 2500);
 }
 
 function updateApiDot() {
